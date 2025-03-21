@@ -10,7 +10,7 @@ const Navbar = () => {
           </div>
           <div className="flex items-center space-x-4">
             <span className="flex items-center space-x-1">
-              <span>Admin</span>
+              <span className="pr-5">Admin</span>
             </span>
           </div>
         </div>

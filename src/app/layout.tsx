@@ -4,6 +4,7 @@ import "./globals.css";
 import { Router } from "next/router";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
+import Dashboard from "@/pages/Dashboard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,10 +29,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <div className="flex h-screen">        
-          <Sidebar />
-          <div className="flex flex-col flex-1">
-            <Navbar />
+        <div className="flex flex-col flex-1">        
+          <Navbar />
+          <div className="flex">
+            <Sidebar />
             <main className="p-4">{children}</main>
           </div>
         </div>
