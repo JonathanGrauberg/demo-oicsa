@@ -4,8 +4,11 @@ import React from 'react';
 const menuItems = [
   { label: 'Panel de Control', path: '/' },
   { label: 'Vehículos y Máquinas', path: '/vehicles' },
-  { label: 'Choferes', path: '/drivers' },
+  { label: 'Choferes', path: '/Drivers' },
   { label: 'Obras', path: '/projects' },
+  { label: 'Usuaios', path: '/users' },
+  { label: 'Generar Vale', path: '/newvoucher' },
+  { label: 'Registrar Vehículo', path: '/vehicleregistration' },
 ];
 const Sidebar = () => {
     return (
