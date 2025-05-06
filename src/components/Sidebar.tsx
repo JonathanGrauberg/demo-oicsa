@@ -9,6 +9,7 @@ const menuItems = [
   { label: 'Usuaios', path: '/users' },
   { label: 'Generar Vale', path: '/newvoucher' },
   { label: 'Registrar Vehículo', path: '/vehicleregistration' },
+  { label: 'Registrar Usuario', path: '/newUser' },
 ];
 const Sidebar = () => {
     return (
