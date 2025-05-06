@@ -5,12 +5,15 @@ const NewUser = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
+    fecha_alta: '',
+    fecha_baja: null,
     fecha_nacimiento: '',
-    documento: '',
+    numero_documento: '',
     cargo: '',
     username: '',
     password: '',
     rol: '',
+    estado_empleado: 'Activo',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -34,12 +37,15 @@ const NewUser = () => {
         setFormData({
           nombre: '',
           apellido: '',
+          fecha_alta: '',
+          fecha_baja: null,
           fecha_nacimiento: '',
-          documento: '',
+          numero_documento: '',
           cargo: 'Administrativo',
           username: '',
           password: '',
           rol: 'Chofer',
+          estado_empleado: 'Activo',
         });
       } else {
         alert('Error al registrar usuario: ' + result.error);
@@ -68,7 +74,7 @@ const NewUser = () => {
               <input type="date" name="fecha_nacimiento" value={formData.fecha_nacimiento} onChange={handleChange} className="input text-black" />
 
               <label className="block text-sm font-medium text-gray-700 mt-2">Documento</label>
-              <input type="number" name="documento" value={formData.documento} onChange={handleChange} className="input text-black" />
+              <input type="number" name="documento" value={formData.numero_documento} onChange={handleChange} className="input text-black" />
             </div>
 
             {/* Datos como Empleado */}
@@ -79,6 +85,14 @@ const NewUser = () => {
                 <option>Administrativo</option>
                 <option>Chofer</option>
               </select>
+              <label className="block text-sm font-medium text-gray-700">Se encuentra:</label>
+              <select name="estado_empleado" value={formData.estado_empleado} onChange={handleChange} className="input text-black">
+                <option>Activo</option>
+                <option>Inactivo</option>
+                <option>Licencia</option>
+              </select>
+              <label className="block text-sm font-medium text-gray-700 mt-2">Fecha de alta</label>
+              <input type="date" name="fecha_alta" value={formData.fecha_alta} onChange={handleChange} className="input text-black" />
             </div>
 
             {/* Datos como Usuario */}
@@ -108,12 +122,15 @@ const NewUser = () => {
             <button type="button" onClick={() => setFormData({
               nombre: '',
               apellido: '',
+              fecha_alta: '',
+              fecha_baja: null,
               fecha_nacimiento: '',
-              documento: '',
+              numero_documento: '',
               cargo: 'Administrativo',
               username: '',
               password: '',
               rol: 'Chofer',
+              estado_empleado: 'Activo',
             })} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
               Cancelar
             </button>

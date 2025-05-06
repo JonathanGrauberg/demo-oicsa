@@ -1,51 +1,120 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
 import { pool } from '@/lib/db';
+import { Persona } from '@/lib/types/persona';
+import { Empleado } from '@/lib/types/empleado';
+import { Usuario } from '@/lib/types/usuario';
+
+export async function POST(req: Request) {
+  const data = await req.json();
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // 1. Insertar persona
+    const persona: Omit<Persona, 'id'> = {
+      nombre: data.nombre,
+      apellido: data.apellido,
+      fecha_nacimiento: data.fecha_nacimiento,
+      numero_documento: parseInt(data.numero_documento),
+    };
+
+    const personaResult = await client.query(
+      `INSERT INTO personas (nombre, apellido, fecha_nacimiento, numero_documento)
+       VALUES ($1, $2, $3, $4) RETURNING id`,
+      [persona.nombre, persona.apellido, persona.fecha_nacimiento, persona.numero_documento]
+    );
+
+    const id_persona = personaResult.rows[0].id;
+
+    // 2. Insertar empleado
+    const empleado: Omit<Empleado, 'id' | 'fecha_baja'> = {
+      id_persona,
+      id_cargo: cargoToId(data.cargo),
+      id_estado_empleado: estadoToId(data.estado_empleado),
+      fecha_alta: data.fecha_alta,
+    };
+
+    const empleadoResult = await client.query(
+      `INSERT INTO empleado (id_persona, id_cargo, id_estado_empleado, fecha_alta)
+       VALUES ($1, $2, $3, $4) RETURNING id`,
+      [empleado.id_persona, empleado.id_cargo, empleado.id_estado_empleado, empleado.fecha_alta]
+    );
+
+    const id_empleado = empleadoResult.rows[0].id;
+
+    // 3. Insertar usuario
+    const usuario: Omit<Usuario, 'id'> = {
+      username: data.username,
+      password: data.password,
+      id_rol: rolToId(data.rol),
+      id_empleado,
+      email: '' // lo podés omitir si no usás email por ahora
+    };
+
+    await client.query(
+      `INSERT INTO usuario (username, password, id_rol, id_empleado, email)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [usuario.username, usuario.password, usuario.id_rol, usuario.id_empleado, usuario.email]
+    );
+
+    await client.query('COMMIT');
+    return NextResponse.json({ success: true }, { status: 200 });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error al registrar usuario:', error);
+    return NextResponse.json({ error: 'Error al registrar usuario' }, { status: 500 });
+
+  } finally {
+    client.release();
+  }
+}
 
 export async function GET() {
   try {
-    const result = await pool.query('SELECT * FROM usuario');
-    return NextResponse.json(result.rows);
+    const result = await pool.query(
+      `SELECT u.id, u.username, u.email, r.nombre AS rol
+       FROM usuario u
+       JOIN rol r ON u.id_rol = r.id`
+    );
+
+    return NextResponse.json({ usuario: result.rows }, { status: 200 });
   } catch (error) {
+    console.error('Error al obtener usuarios:', error);
     return NextResponse.json({ error: 'Error al obtener usuarios' }, { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
-  try {
-    const { nombre, apellido, fecha_nacimiento, documento, cargo, username, password, rol } = await req.json();
 
-    // Insertar en tabla persona
-    const personaResult = await query(
-      `INSERT INTO persona (nombre, apellido, fecha_nacimiento, documento)
-       VALUES ($1, $2, $3, $4) RETURNING id_persona`,
-      [nombre, apellido, fecha_nacimiento, documento]
-    );
-
-    const id_persona = personaResult[0]?.id_persona;
-    if (!id_persona) throw new Error('No se pudo crear persona');
-
-    // Insertar en tabla empleado
-    const empleadoResult = await query(
-      `INSERT INTO empleado (id_persona, cargo) VALUES ($1, $2) RETURNING id_empleado`,
-      [id_persona, cargo]
-    );
-
-    const id_empleado = empleadoResult[0]?.id_empleado;
-    if (!id_empleado) throw new Error('No se pudo crear empleado');
-
-    // Insertar en tabla usuario
-    const usuarioResult = await query(
-      `INSERT INTO usuario (id_empleado, username, password, rol) VALUES ($1, $2, $3, $4) RETURNING id_usuario`,
-      [id_empleado, username, password, rol]
-    );
-
-    const id_usuario = usuarioResult[0]?.id_usuario;
-    if (!id_usuario) throw new Error('No se pudo crear usuario');
-
-    return NextResponse.json({ success: true, id_usuario });
-  } catch (error: any) {
-    console.error('Error al registrar usuario:', error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+// Función auxiliar: convierte nombre de cargo a id
+function cargoToId(cargo: string): number {
+  switch (cargo.toLowerCase()) {
+    case 'administrativo': return 1;
+    case 'chofer': return 2;
+    default: return 1;
   }
 }
+
+// Función auxiliar: convierte nombre de rol a id
+function rolToId(rol: string): number {
+  switch (rol.toLowerCase()) {
+    case 'chofer': return 1;
+    case 'supervisor': return 2;
+    case 'administrativo': return 3;
+    case 'super usuario': return 4;
+    default: return 1;
+  }
+}
+
+// Función auxiliar: convierte nombre de estado a id
+function estadoToId(estado: string): number {
+  switch (estado.toLowerCase()) {
+    case 'activo': return 1;
+    case 'inactivo': return 2;
+    case 'licencia': return 3;
+    default: return 1;
+  }
+}
+

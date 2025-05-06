@@ -1,6 +1,6 @@
-import { UsuarioPayload } from '@/types/usuario';
+import { Usuario } from '@/lib/types/usuario';
 
-export async function registrarUsuario(data: UsuarioPayload) {
+export async function registrarUsuario(data: Usuario) {
   const res = await fetch('/api/usuario', {
     method: 'POST',
     headers: {
