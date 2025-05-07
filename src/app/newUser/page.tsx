@@ -57,7 +57,7 @@ const NewUser = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-6">Alta de Usuario</h1>
+      <h1 className="text-2xl font-bold text-black mb-6">Alta de Usuario</h1>
       <div className="bg-white rounded-lg shadow-md p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -65,51 +65,51 @@ const NewUser = () => {
             <div>
               <h2 className="text-xl font-bold text-black mb-4">Datos de la Persona</h2>
               <label className="block text-sm font-medium text-gray-700">Nombre</label>
-              <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} className="input text-black" />
+              <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} className="input text-black" required/>
 
               <label className="block text-sm font-medium text-gray-700 mt-2">Apellido</label>
-              <input type="text" name="apellido" value={formData.apellido} onChange={handleChange} className="input text-black" />
+              <input type="text" name="apellido" value={formData.apellido} onChange={handleChange} className="input text-black" required/>
 
               <label className="block text-sm font-medium text-gray-700 mt-2">Fecha Nacimiento</label>
-              <input type="date" name="fecha_nacimiento" value={formData.fecha_nacimiento} onChange={handleChange} className="input text-black" />
+              <input type="date" name="fecha_nacimiento" value={formData.fecha_nacimiento} onChange={handleChange} className="input text-black" required/>
 
               <label className="block text-sm font-medium text-gray-700 mt-2">Documento</label>
-              <input type="number" name="documento" value={formData.numero_documento} onChange={handleChange} className="input text-black" />
+              <input type="number" name="numero_documento" value={formData.numero_documento} onChange={handleChange} className="input text-black" required/>
             </div>
 
             {/* Datos como Empleado */}
             <div>
               <h2 className="text-xl font-bold text-black mb-4">Datos como Empleado</h2>
               <label className="block text-sm font-medium text-gray-700">Cargo</label>
-              <select name="cargo" value={formData.cargo} onChange={handleChange} className="input text-black">
+              <select name="cargo" value={formData.cargo} onChange={handleChange} className="input text-black" required>
                 <option>Administrativo</option>
                 <option>Chofer</option>
               </select>
               <label className="block text-sm font-medium text-gray-700">Se encuentra:</label>
-              <select name="estado_empleado" value={formData.estado_empleado} onChange={handleChange} className="input text-black">
+              <select name="estado_empleado" value={formData.estado_empleado} onChange={handleChange} className="input text-black" required>
                 <option>Activo</option>
                 <option>Inactivo</option>
                 <option>Licencia</option>
               </select>
               <label className="block text-sm font-medium text-gray-700 mt-2">Fecha de alta</label>
-              <input type="date" name="fecha_alta" value={formData.fecha_alta} onChange={handleChange} className="input text-black" />
+              <input type="date" name="fecha_alta" value={formData.fecha_alta} onChange={handleChange} className="input text-black" required/>
             </div>
 
             {/* Datos como Usuario */}
             <div>
               <h2 className="text-xl font-bold text-black mb-4">Datos como Usuario</h2>
               <label className="block text-sm font-medium text-gray-700">Nombre de Usuario</label>
-              <input type="text" name="username" value={formData.username} onChange={handleChange} className="input text-black" />
+              <input type="text" name="username" value={formData.username} onChange={handleChange} className="input text-black" required/>
 
               <label className="block text-sm font-medium text-gray-700 mt-2">Password</label>
-              <input type="password" name="password" value={formData.password} onChange={handleChange} className="input text-black" />
+              <input type="password" name="password" value={formData.password} onChange={handleChange} className="input text-black" required/>
             </div>
 
             {/* Rol de Usuario */}
             <div>
               <h2 className="text-xl font-bold text-black mb-4">Rol de Usuario</h2>
               <label className="block text-sm font-medium text-gray-700">Tipo de Usuario</label>
-              <select name="rol" value={formData.rol} onChange={handleChange} className="input text-black">
+              <select name="rol" value={formData.rol} onChange={handleChange} className="input text-black" required>
                 <option>Chofer</option>
                 <option>Supervisor</option>
                 <option>Administrativo</option>

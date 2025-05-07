@@ -4,7 +4,7 @@ import SelectsDependientes from '../../components/SelectsDependientes';
 const VehicleRegistration = () => {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-white">Alta de Vehículos</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-black">Alta de Vehículos</h1>
         <div className="bg-white rounded-1g shadow-md p-6">
           <form className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -50,11 +50,19 @@ const VehicleRegistration = () => {
                 <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Tipo de Aceite</label>
+                <label className="block text-sm font-medium text-gray-700">Aceite Motor</label>
                 <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Tipo de Gasoil</label>
+                <label className="block text-sm font-medium text-gray-700">Aceite Caja</label>
+                <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Filtro de Aceite</label>
+                <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Combustible</label>
                 <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black" />
               </div>
               <div>
