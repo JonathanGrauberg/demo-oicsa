@@ -1,27 +1,35 @@
-import { Usuario } from "@/lib/types/types"
+import { Vehiculo } from "@/lib/types/vehiculo";
 
-async function getusuario() {
-  const fetchData = await fetch('http://localhost:3000/api/usuario', {
+async function getVehiculos() {
+  const fetchData = await fetch('http://localhost:3000/api/vehiculo', {
     headers: {
-    "content-Type": 'application/json'
-  }
-  })
-  const res = await fetchData.json()
+      "Content-Type": 'application/json'
+    },
+    cache: 'no-store' // para evitar el cache si estás en desarrollo
+  });
 
-  return res
-
+  return fetchData.json();
 }
 
-export default async function Home() {
-  const usuario: { usuario: Array<Usuario> }= await getusuario()
+export default async function VehiculosPage() {
+  const { vehiculos }: { vehiculos: Array<Vehiculo> } = await getVehiculos();
+
   return (
     <div>
-      <h1 className="text-3xl font-bold pl-auto">Pagina de vehiculos y maquinas</h1>
-      <main className="flex min-h-screen flex-col items-center p-24">
-       <ul className="w-auto min-h-14 h-auto border round-sm p-3">
-       {usuario.usuario && usuario.usuario.map((u: Usuario) => (<li key={u.id}>{u.username} - {u.email}</li>))}
-       </ul>
+      <h1 className="text-3xl font-bold">Vehículos registrados</h1>
+      <main className="flex min-h-screen flex-col items-center p-6">
+        <ul className="w-full max-w-3xl border rounded p-4 space-y-2">
+          {vehiculos && vehiculos.length > 0 ? (
+            vehiculos.map((v) => (
+              <li key={v.id} className="border-b pb-2">
+                <strong>{v.marca} {v.modelo}</strong> - Patente: {v.patente} - Motor: {v.motor}
+              </li>
+            ))
+          ) : (
+            <li>No hay vehículos registrados.</li>
+          )}
+        </ul>
       </main>
-    </div>  
+    </div>
   );
 }

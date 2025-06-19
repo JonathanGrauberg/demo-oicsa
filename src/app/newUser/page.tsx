@@ -5,29 +5,47 @@ const NewUser = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
-    fecha_alta: '',
-    fecha_baja: null,
-    fecha_nacimiento: '',
-    numero_documento: '',
-    cargo: '',
-    username: '',
-    password: '',
+    email: '',
     rol: '',
-    estado_empleado: 'Activo',
+    password: '',
+    confirmPassword: ''
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordsMatch, setPasswordsMatch] = useState(true);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+
+      if (name === 'password' || name === 'confirmPassword') {
+        setPasswordsMatch(updated.password === updated.confirmPassword);
+      }
+
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!passwordsMatch) {
+      alert('Las contraseñas no coinciden');
+      return;
+    }
+
     try {
       const res = await fetch('/api/usuario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          nombre: formData.nombre,
+          apellido: formData.apellido,
+          email: formData.email,
+          rol: formData.rol,
+          password: formData.password
+        }),
       });
 
       const result = await res.json();
@@ -37,15 +55,10 @@ const NewUser = () => {
         setFormData({
           nombre: '',
           apellido: '',
-          fecha_alta: '',
-          fecha_baja: null,
-          fecha_nacimiento: '',
-          numero_documento: '',
-          cargo: 'Administrativo',
-          username: '',
+          email: '',
+          rol: '',
           password: '',
-          rol: 'Chofer',
-          estado_empleado: 'Activo',
+          confirmPassword: ''
         });
       } else {
         alert('Error al registrar usuario: ' + result.error);
@@ -61,82 +74,76 @@ const NewUser = () => {
       <div className="bg-white rounded-lg shadow-md p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Datos de la Persona */}
+
             <div>
-              <h2 className="text-xl font-bold text-black mb-4">Datos de la Persona</h2>
               <label className="block text-sm font-medium text-gray-700">Nombre</label>
-              <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} className="input text-black" required/>
+              <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} className="block w-full rounded-md border-gray-300 shadow-sm" required />
 
               <label className="block text-sm font-medium text-gray-700 mt-2">Apellido</label>
-              <input type="text" name="apellido" value={formData.apellido} onChange={handleChange} className="input text-black" required/>
+              <input type="text" name="apellido" value={formData.apellido} onChange={handleChange} className="block w-full rounded-md border-gray-300 shadow-sm" required />
 
-              <label className="block text-sm font-medium text-gray-700 mt-2">Fecha Nacimiento</label>
-              <input type="date" name="fecha_nacimiento" value={formData.fecha_nacimiento} onChange={handleChange} className="input text-black" required/>
+              <label className="block text-sm font-medium text-gray-700 mt-2">Email</label>
+              <input type="email" name="email" value={formData.email} onChange={handleChange} className="block w-full rounded-md border-gray-300 shadow-sm" required />
 
-              <label className="block text-sm font-medium text-gray-700 mt-2">Documento</label>
-              <input type="number" name="numero_documento" value={formData.numero_documento} onChange={handleChange} className="input text-black" required/>
-            </div>
-
-            {/* Datos como Empleado */}
-            <div>
-              <h2 className="text-xl font-bold text-black mb-4">Datos como Empleado</h2>
-              <label className="block text-sm font-medium text-gray-700">Cargo</label>
-              <select name="cargo" value={formData.cargo} onChange={handleChange} className="input text-black" required>
-                <option>Administrativo</option>
-                <option>Chofer</option>
+              <label className="block text-sm font-medium text-gray-700 mt-2">Rol</label>
+              <select
+                name="rol"
+                value={formData.rol}
+                onChange={handleChange}
+                className="block w-full rounded-md border-gray-300 shadow-sm text-black"
+                required
+              >
+                <option value="">Seleccionar rol...</option>
+                <option value="chofer">Chofer</option>
+                <option value="administrativo">Administrativo</option>
+                <option value="superusuario">Superusuario</option>
               </select>
-              <label className="block text-sm font-medium text-gray-700">Se encuentra:</label>
-              <select name="estado_empleado" value={formData.estado_empleado} onChange={handleChange} className="input text-black" required>
-                <option>Activo</option>
-                <option>Inactivo</option>
-                <option>Licencia</option>
-              </select>
-              <label className="block text-sm font-medium text-gray-700 mt-2">Fecha de alta</label>
-              <input type="date" name="fecha_alta" value={formData.fecha_alta} onChange={handleChange} className="input text-black" required/>
+
+              <label className="block text-sm font-medium text-gray-700 mt-2">Contraseña</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="block w-full rounded-md border-gray-300 shadow-sm pr-10"
+                  required
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 text-gray-500">
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
+
+              <label className="block text-sm font-medium text-gray-700 mt-2">Confirmar Contraseña</label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className={`block w-full rounded-md border ${passwordsMatch ? 'border-gray-300' : 'border-red-500'} shadow-sm`}
+                required
+              />
+              {!passwordsMatch && (
+                <p className="text-red-500 text-sm mt-1">Las contraseñas no coinciden</p>
+              )}
             </div>
 
-            {/* Datos como Usuario */}
-            <div>
-              <h2 className="text-xl font-bold text-black mb-4">Datos como Usuario</h2>
-              <label className="block text-sm font-medium text-gray-700">Nombre de Usuario</label>
-              <input type="text" name="username" value={formData.username} onChange={handleChange} className="input text-black" required/>
-
-              <label className="block text-sm font-medium text-gray-700 mt-2">Password</label>
-              <input type="password" name="password" value={formData.password} onChange={handleChange} className="input text-black" required/>
+            <div className="flex justify-end space-x-3 col-span-full">
+              <button type="button" onClick={() => setFormData({
+                nombre: '',
+                apellido: '',
+                email: '',
+                rol: '',
+                password: '',
+                confirmPassword: ''
+              })} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Cancelar
+              </button>
+              <button type="submit" disabled={!passwordsMatch} className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                Registrar Usuario
+              </button>
             </div>
 
-            {/* Rol de Usuario */}
-            <div>
-              <h2 className="text-xl font-bold text-black mb-4">Rol de Usuario</h2>
-              <label className="block text-sm font-medium text-gray-700">Tipo de Usuario</label>
-              <select name="rol" value={formData.rol} onChange={handleChange} className="input text-black" required>
-                <option>Chofer</option>
-                <option>Supervisor</option>
-                <option>Administrativo</option>
-                <option>Super Usuario</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-3">
-            <button type="button" onClick={() => setFormData({
-              nombre: '',
-              apellido: '',
-              fecha_alta: '',
-              fecha_baja: null,
-              fecha_nacimiento: '',
-              numero_documento: '',
-              cargo: 'Administrativo',
-              username: '',
-              password: '',
-              rol: 'Chofer',
-              estado_empleado: 'Activo',
-            })} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
-              Cancelar
-            </button>
-            <button type="submit" className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-              Registrar Usuario
-            </button>
           </div>
         </form>
       </div>
