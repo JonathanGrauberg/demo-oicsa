@@ -1,0 +1,67 @@
+// app/api/vale/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { pool } from '@/lib/db';
+import { Vale } from '@/lib/types/vale';
+
+export async function POST(req: Request) {
+  try {
+    const data: Vale = await req.json();
+    const {
+      combustible_lubricante,
+      litros,
+      vehiculo,
+      obra,
+      destino,
+      chofer,
+      solicitado_por,
+      fecha
+    } = data;
+
+    const query = `
+      INSERT INTO vale (
+        combustible_lubricante, litros, vehiculo, obra, destino, chofer,
+        solicitado_por, fecha, aprobado, creado_en
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,false,NOW())
+      RETURNING *;
+    `;
+
+    const values = [
+      combustible_lubricante,
+      litros,
+      vehiculo,
+      obra,
+      destino,
+      chofer,
+      solicitado_por,
+      fecha
+    ];
+
+    const result = await pool.query(query, values);
+    return NextResponse.json({ vale: result.rows[0] }, { status: 201 });
+  } catch (error) {
+    console.error('Error al crear vale:', error);
+    return NextResponse.json({ error: 'Error al crear vale' }, { status: 500 });
+  }
+}
+
+// NUEVO GET
+export async function GET(req: NextRequest) {
+  try {
+    const aprobado = req.nextUrl.searchParams.get('aprobado'); 
+    let query = `SELECT id, combustible_lubricante, litros, vehiculo, obra, destino, chofer,
+        solicitado_por, fecha, aprobado, creado_en
+                 FROM vale`;
+    const params: any[] = [];
+
+    if (aprobado !== null) {
+      query += ` WHERE aprobado = $1`;
+      params.push(aprobado === 'true');
+    }
+
+    const result = await pool.query(query, params);
+    return NextResponse.json(result.rows);
+  } catch (error) {
+    console.error('Error al obtener vales:', error);
+    return NextResponse.json({ error: 'Error al obtener vales' }, { status: 500 });
+  }
+}

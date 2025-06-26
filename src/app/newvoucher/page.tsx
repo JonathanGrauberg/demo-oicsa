@@ -1,80 +1,159 @@
-const NewVoucher = () => {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-white-800 mb-6">Crear Nuevo Vale</h1>
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <form className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Combustible o Lubricante</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Litros</label>
-                <input
-                  type="number"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Vehículo</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Obra</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Destino</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Chofer</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Solicitado por:</label> 
-                <input
-                  type="text" placeholder='user login' disabled
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Fecha</label>
-                <input
-                  type="date"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end space-x-3">
-              <button type="button" className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
-                Cancelar
-              </button>
-              <button type="submit" className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-                Imprimir PDF
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
+'use client';
+import { useState, useEffect } from 'react';
+
+const CrearVale = () => {
+  const [formData, setFormData] = useState({
+    combustible_lubricante: '',
+    litros: '',
+    vehiculo: '', // Ahora guardará el id del vehículo seleccionado
+    obra: '',
+    destino: '',
+    chofer: '',
+    fecha: '',
+  });
+  const [vehiculos, setVehiculos] = useState([] as any[]);
+
+  const userId = 1;
+
+  // Carga de vehículos al montar
+  useEffect(() => {
+    const fetchVehiculos = async () => {
+      const res = await fetch('/api/vehiculo');
+      const data = await res.json();
+      setVehiculos(data);
+    };
+    fetchVehiculos();
+  }, []);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-  
-  export default NewVoucher;
-  
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!userId) {
+      alert('No se pudo identificar al usuario');
+      return;
+    }
+
+    const vale = { ...formData, solicitado_por: userId };
+    const res = await fetch('/api/vale', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(vale),
+    });
+
+    if (res.ok) {
+      alert('Vale generado correctamente. Pendiente de aprobación.');
+      setFormData({
+        combustible_lubricante: '',
+        litros: '',
+        vehiculo: '',
+        obra: '',
+        destino: '',
+        chofer: '',
+        fecha: '',
+      });
+    } else {
+      alert('Error al generar vale');
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Crear Nuevo Vale</h1>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <input
+          name="combustible_lubricante"
+          value={formData.combustible_lubricante}
+          onChange={handleChange}
+          placeholder="Combustible o Lubricante"
+          className="input-style"
+          required
+        />
+        <input
+          name="litros"
+          type="number"
+          value={formData.litros}
+          onChange={handleChange}
+          placeholder="Litros"
+          className="input-style"
+          required
+        />
+        <select
+          name="vehiculo"
+          value={formData.vehiculo}
+          onChange={handleChange}
+          className="input-style"
+          required
+        >
+          <option value="">Seleccione un vehículo</option>
+          {vehiculos.map((v: any) => (
+            <option key={v.id} value={v.id}>
+              {v.marca} - {v.modelo} ({v.patente})
+            </option>
+          ))}
+        </select>
+        <input
+          name="obra"
+          value={formData.obra}
+          onChange={handleChange}
+          placeholder="Obra"
+          className="input-style"
+          required
+        />
+        <input
+          name="destino"
+          value={formData.destino}
+          onChange={handleChange}
+          placeholder="Destino"
+          className="input-style"
+          required
+        />
+        <input
+          name="chofer"
+          value={formData.chofer}
+          onChange={handleChange}
+          placeholder="Chofer"
+          className="input-style"
+          required
+        />
+        <input
+          type="date"
+          name="fecha"
+          value={formData.fecha}
+          onChange={handleChange}
+          className="input-style"
+          required
+        />
+        <div className="col-span-full flex justify-end gap-2 mt-4">
+          <button
+            type="reset"
+            onClick={() =>
+              setFormData({
+                combustible_lubricante: '',
+                litros: '',
+                vehiculo: '', 
+                obra: '',
+                destino: '',
+                chofer: '',
+                fecha: '',
+              })
+            }
+            className="px-4 py-2 bg-gray-300 text-black rounded"
+          >
+            Cancelar
+          </button>
+          <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">
+            Crear Vale
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default CrearVale;

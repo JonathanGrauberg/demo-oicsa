@@ -79,3 +79,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Error al registrar vehículo', error }, { status: 500 });
   }
 }
+// ✅ AQUÍ AGREGAMOS EL GET
+export async function GET(req: NextRequest) {
+  try {
+    const result = await pool.query('SELECT id, marca, modelo, patente FROM vehiculo');
+    return NextResponse.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Error al obtener vehículos' }, { status: 500 });
+  }
+}
