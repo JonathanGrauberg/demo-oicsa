@@ -38,7 +38,7 @@ export default function ValesPendientes() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Vales Pendientes</h1>
+      <h1 className="text-2xl font-bold mb-4">Vales Pendientes de Aprobar</h1>
       <table className="w-full border border-gray-200">
         <thead>
           <tr className="bg-gray-100 text-left">
@@ -65,6 +65,7 @@ export default function ValesPendientes() {
                 >
                   Aprobar
                 </button>
+                //si el usuario es administrativo no mostrar el botón de aprobar
               </td>
             </tr>
           ))}

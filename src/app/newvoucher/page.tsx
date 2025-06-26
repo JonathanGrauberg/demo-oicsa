@@ -61,10 +61,24 @@ const CrearVale = () => {
       alert('Error al generar vale');
     }
   };
+//AGREGAR KILOMETRAJE!!!
+
+//QUITAR CHOFER DE LA BD CAMBIAR A ENCARGADO / SUPERVISOR SOLO PEDIR Y VER SI ESTA APROBADO O NO NADA MAS!!!
+
+//GENERAR SI O SI FOLEADO DE VALES INCREMENTAL
+
+// FECHA FIJADA PARA QUE NO SE PUEDA CAMBIAR
+
+//ADMINISTRATIVO SOLO VE IMPRIMIR UNA VEZ APROVADO POR EL SUPERUSUARIO
+
+//ADMINISTRATIVO VER CARGAR VEHICULO OBRA 
+
+//GEREAR CREAR TABLA OBRA CON DESTINO QUE PUEDE VARIAR
+
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Crear Nuevo Vale</h1>
+      <h1 className="text-2xl font-bold mb-4">Pedido de Nuevo Vale</h1>
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <input
           name="combustible_lubricante"
