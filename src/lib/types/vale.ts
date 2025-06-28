@@ -7,10 +7,11 @@ export interface Vale {
   vehiculo: string;
   obra: string;
   destino: string;
-  chofer: string;
+  encargado: string;
   solicitado_por: number; // id del usuario
   fecha: string;
   aprobado: boolean;
   aprobado_por?: number | null;
   creado_en?: string;
+  kilometraje?: number;
 }

@@ -12,16 +12,17 @@ export async function POST(req: Request) {
       vehiculo,
       obra,
       destino,
-      chofer,
+      encargado,
       solicitado_por,
-      fecha
+      fecha,
+      kilometraje
     } = data;
 
     const query = `
       INSERT INTO vale (
-        combustible_lubricante, litros, vehiculo, obra, destino, chofer,
-        solicitado_por, fecha, aprobado, creado_en
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,false,NOW())
+        combustible_lubricante, litros, vehiculo, obra, destino, encargado,
+        solicitado_por, fecha, kilometraje, aprobado, creado_en
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,false,NOW())
       RETURNING *;
     `;
 
@@ -31,9 +32,10 @@ export async function POST(req: Request) {
       vehiculo,
       obra,
       destino,
-      chofer,
+      encargado,
       solicitado_por,
-      fecha
+      fecha,
+      kilometraje
     ];
 
     const result = await pool.query(query, values);
@@ -48,8 +50,8 @@ export async function POST(req: Request) {
 export async function GET(req: NextRequest) {
   try {
     const aprobado = req.nextUrl.searchParams.get('aprobado'); 
-    let query = `SELECT id, combustible_lubricante, litros, vehiculo, obra, destino, chofer,
-        solicitado_por, fecha, aprobado, creado_en
+    let query = `SELECT id, combustible_lubricante, litros, vehiculo, obra, destino, encargado,
+        solicitado_por, fecha, aprobado, creado_en, kilometraje
                  FROM vale`;
     const params: any[] = [];
 

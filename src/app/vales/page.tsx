@@ -34,7 +34,7 @@ export default function ValesPage() {
       Vehiculo: `${v.marca} ${v.modelo} (${v.vehiculo})`,
       Obra: v.obra,
       Destino: v.destino,
-      Chofer: v.chofer,
+      encargado: v.encargado,
       Fecha: v.fecha,
       Aprobado: v.aprobado ? 'Sí' : 'No',
     }));
@@ -60,7 +60,7 @@ export default function ValesPage() {
       doc.text(`Vehiculo: ${vale.marca} ${vale.modelo} (${vale.vehiculo})`, 20, y + 15);
       doc.text(`Obra: ${vale.obra}`, 20, y + 20);
       doc.text(`Destino: ${vale.destino}`, 20, y + 25);
-      doc.text(`Chofer: ${vale.chofer}`, 20, y + 30);
+      doc.text(`encargado: ${vale.encargado}`, 20, y + 30);
       doc.text(`Fecha: ${vale.fecha}`, 20, y + 35);
       doc.text(`Aprobado: ${vale.aprobado ? 'Sí' : 'No'}`, 20, y + 40);
 
@@ -117,7 +117,7 @@ export default function ValesPage() {
               <th className="border border-gray-300 p-2">Obra</th>
               <th className="border border-gray-300 p-2">Destino</th>
               <th className="border border-gray-300 p-2">Vehiculo</th>
-              <th className="border border-gray-300 p-2">Chofer</th>
+              <th className="border border-gray-300 p-2">encargado</th>
               <th className="border border-gray-300 p-2">Aprobado</th>
             </tr>
           </thead>
@@ -131,7 +131,7 @@ export default function ValesPage() {
                 <td className="border border-gray-300 p-2">
                   {vale.marca} {vale.modelo} ({vale.vehiculo})
                 </td>
-                <td className="border border-gray-300 p-2">{vale.chofer}</td>
+                <td className="border border-gray-300 p-2">{vale.encargado}</td>
                 <td className="border border-gray-300 p-2">{vale.aprobado ? 'Sí' : 'No'}</td>
               </tr>
             ))}

@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react';
 const CrearVale = () => {
   const [formData, setFormData] = useState({
     combustible_lubricante: '',
-    litros: '',
-    vehiculo: '', // Ahora guardará el id del vehículo seleccionado
+    litros: '' as number | '',
+    vehiculo: '',
     obra: '',
     destino: '',
-    chofer: '',
+    encargado: '',
     fecha: '',
+    kilometraje: '' as number | '',
+
   });
   const [vehiculos, setVehiculos] = useState([] as any[]);
 
@@ -24,6 +26,12 @@ const CrearVale = () => {
     };
     fetchVehiculos();
   }, []);
+
+  useEffect(() => {
+  const today = new Date().toISOString().split('T')[0];
+  setFormData(prev => ({ ...prev, fecha: today }));
+  }, []);
+
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -50,24 +58,19 @@ const CrearVale = () => {
       alert('Vale generado correctamente. Pendiente de aprobación.');
       setFormData({
         combustible_lubricante: '',
-        litros: '',
+        litros: '' as number | '',
         vehiculo: '',
         obra: '',
         destino: '',
-        chofer: '',
+        encargado: '',
         fecha: '',
+        kilometraje: '' as number | '',
+
       });
     } else {
       alert('Error al generar vale');
     }
   };
-//AGREGAR KILOMETRAJE!!!
-
-//QUITAR CHOFER DE LA BD CAMBIAR A ENCARGADO / SUPERVISOR SOLO PEDIR Y VER SI ESTA APROBADO O NO NADA MAS!!!
-
-//GENERAR SI O SI FOLEADO DE VALES INCREMENTAL
-
-// FECHA FIJADA PARA QUE NO SE PUEDA CAMBIAR
 
 //ADMINISTRATIVO SOLO VE IMPRIMIR UNA VEZ APROVADO POR EL SUPERUSUARIO
 
@@ -128,21 +131,32 @@ const CrearVale = () => {
           required
         />
         <input
-          name="chofer"
-          value={formData.chofer}
+          name="encargado"
+          value={formData.encargado}
           onChange={handleChange}
-          placeholder="Chofer"
+          placeholder="encargado"
           className="input-style"
           required
         />
         <input
-          type="date"
-          name="fecha"
-          value={formData.fecha}
+          name="kilometraje"
+          type="number"
+          value={formData.kilometraje}
           onChange={handleChange}
+          placeholder="Kilometraje"
           className="input-style"
           required
         />
+
+        <input
+          type="date"
+          name="fecha"
+          value={formData.fecha}
+          readOnly
+          className="input-style"
+          required
+        />
+
         <div className="col-span-full flex justify-end gap-2 mt-4">
           <button
             type="reset"
@@ -153,8 +167,9 @@ const CrearVale = () => {
                 vehiculo: '', 
                 obra: '',
                 destino: '',
-                chofer: '',
+                encargado: '',
                 fecha: '',
+                kilometraje: '',
               })
             }
             className="px-4 py-2 bg-gray-300 text-black rounded"

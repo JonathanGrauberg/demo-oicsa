@@ -144,7 +144,7 @@ const NewUser = () => {
                 required
               >
                 <option value="">Seleccionar rol...</option>
-                <option value="chofer">Chofer</option>
+                <option value="Encargado">Encargado</option>
                 <option value="administrativo">Administrativo</option>
                 <option value="superusuario">Superusuario</option>
               </select>

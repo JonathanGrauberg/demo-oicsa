@@ -12,6 +12,7 @@ const menuItems = [
   { label: 'Registrar Vehículo', path: '/vehicleregistration' }, 
   { label: 'Registrar Usuario', path: '/newUser' },
   { label: 'Vales Pendientes', path: '/vales-pendientes' },
+  { label: 'Vales Aprobados', path: '/vales-aprobados' },
   { label: 'Ver Vales', path: '/vales' },
   
 ];
