@@ -5,14 +5,14 @@ async function getVehiculos() {
     headers: {
       "Content-Type": 'application/json'
     },
-    cache: 'no-store' // para evitar el cache si estás en desarrollo
+    cache: 'no-store'
   });
 
   return fetchData.json();
 }
 
 export default async function VehiculosPage() {
-  const { vehiculos }: { vehiculos: Array<Vehiculo> } = await getVehiculos();
+  const vehiculos: Array<Vehiculo> = await getVehiculos();
 
   return (
     <div>

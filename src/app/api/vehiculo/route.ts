@@ -89,3 +89,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Error al obtener vehículos' }, { status: 500 });
   }
 }
+
