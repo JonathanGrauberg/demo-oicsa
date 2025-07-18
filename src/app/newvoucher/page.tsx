@@ -11,27 +11,42 @@ const CrearVale = () => {
     encargado: '',
     fecha: '',
     kilometraje: '' as number | '',
-
   });
+
   const [vehiculos, setVehiculos] = useState([] as any[]);
+  const [obras, setObras] = useState([] as any[]);
+  const [insumos, setInsumos] = useState([] as any[]); // 🆕 stock
 
   const userId = 1;
 
-  // Carga de vehículos al montar
   useEffect(() => {
     const fetchVehiculos = async () => {
       const res = await fetch('/api/vehiculo');
       const data = await res.json();
       setVehiculos(data);
     };
+
+    const fetchObras = async () => {
+      const res = await fetch('/api/obra');
+      const data = await res.json();
+      setObras(data);
+    };
+
+    const fetchStock = async () => {
+      const res = await fetch('/api/stock');
+      const data = await res.json();
+      setInsumos(data);
+    };
+
     fetchVehiculos();
+    fetchObras();
+    fetchStock();
   }, []);
 
   useEffect(() => {
-  const today = new Date().toISOString().split('T')[0];
-  setFormData(prev => ({ ...prev, fecha: today }));
+    const today = new Date().toISOString().split('T')[0];
+    setFormData(prev => ({ ...prev, fecha: today }));
   }, []);
-
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -48,6 +63,7 @@ const CrearVale = () => {
     }
 
     const vale = { ...formData, solicitado_por: userId };
+
     const res = await fetch('/api/vale', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -58,39 +74,40 @@ const CrearVale = () => {
       alert('Vale generado correctamente. Pendiente de aprobación.');
       setFormData({
         combustible_lubricante: '',
-        litros: '' as number | '',
+        litros: '',
         vehiculo: '',
         obra: '',
         destino: '',
         encargado: '',
         fecha: '',
-        kilometraje: '' as number | '',
-
+        kilometraje: '',
       });
     } else {
       alert('Error al generar vale');
     }
   };
 
-//ADMINISTRATIVO SOLO VE IMPRIMIR UNA VEZ APROVADO POR EL SUPERUSUARIO
-
-//ADMINISTRATIVO VER CARGAR VEHICULO OBRA 
-
-//GEREAR CREAR TABLA OBRA CON DESTINO QUE PUEDE VARIAR
-
-
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Pedido de Nuevo Vale</h1>
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <input
+        
+        {/* 🆕 Selector de combustible/lubricante */}
+        <select
           name="combustible_lubricante"
           value={formData.combustible_lubricante}
           onChange={handleChange}
-          placeholder="Combustible o Lubricante"
           className="input-style"
           required
-        />
+        >
+          <option value="">Seleccione insumo</option>
+          {insumos.map((item: any) => (
+            <option key={item.id} value={item.nombre}>
+              {item.nombre} - {item.tipo}
+            </option>
+          ))}
+        </select>
+
         <input
           name="litros"
           type="number"
@@ -100,6 +117,7 @@ const CrearVale = () => {
           className="input-style"
           required
         />
+
         <select
           name="vehiculo"
           value={formData.vehiculo}
@@ -114,14 +132,22 @@ const CrearVale = () => {
             </option>
           ))}
         </select>
-        <input
+
+        <select
           name="obra"
           value={formData.obra}
           onChange={handleChange}
-          placeholder="Obra"
           className="input-style"
           required
-        />
+        >
+          <option value="">Seleccione una obra</option>
+          {obras.map((obra: any) => (
+            <option key={obra.id} value={obra.nombre}>
+              {obra.nombre} - {obra.ubicacion || ''}
+            </option>
+          ))}
+        </select>
+
         <input
           name="destino"
           value={formData.destino}
@@ -134,7 +160,7 @@ const CrearVale = () => {
           name="encargado"
           value={formData.encargado}
           onChange={handleChange}
-          placeholder="encargado"
+          placeholder="Encargado"
           className="input-style"
           required
         />
@@ -147,7 +173,6 @@ const CrearVale = () => {
           className="input-style"
           required
         />
-
         <input
           type="date"
           name="fecha"
@@ -164,7 +189,7 @@ const CrearVale = () => {
               setFormData({
                 combustible_lubricante: '',
                 litros: '',
-                vehiculo: '', 
+                vehiculo: '',
                 obra: '',
                 destino: '',
                 encargado: '',

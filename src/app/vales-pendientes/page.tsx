@@ -1,4 +1,3 @@
-// app/vales-pendientes/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,9 +6,19 @@ type Vale = {
   id: number;
   combustible_lubricante: string;
   litros: number;
-  vehiculo: string;
-  chofer: string;
+  vehiculo: number;
+  obra: string;
+  destino: string;
+  encargado: string;
+  fecha: string;
   aprobado: boolean;
+  kilometraje: number;
+  creado_en: string;
+  solicitado_nombre: string;
+  solicitado_apellido: string;
+  marca: string;
+  modelo: string;
+  patente: string;
 };
 
 export default function ValesPendientes() {
@@ -28,11 +37,32 @@ export default function ValesPendientes() {
       body: JSON.stringify({ id }),
     });
 
+    const data = await res.json();
+
     if (res.ok) {
       setVales(prev => prev.filter(v => v.id !== id));
-      alert('Vale aprobado correctamente');
+      alert('✅ Vale aprobado correctamente');
     } else {
-      alert('Error al aprobar el vale');
+      alert(`❌ No se pudo aprobar el vale: ${data.error || 'Error desconocido'}`);
+    }
+  };
+
+  const eliminarVale = async (id: number) => {
+    const confirmar = confirm('¿Estás seguro que querés eliminar este vale?');
+
+    if (!confirmar) return;
+
+    const res = await fetch('/api/vale/eliminar', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+
+    if (res.ok) {
+      setVales(prev => prev.filter(v => v.id !== id));
+      alert('🗑️ Vale eliminado correctamente');
+    } else {
+      alert('❌ No se pudo eliminar el vale');
     }
   };
 
@@ -42,10 +72,12 @@ export default function ValesPendientes() {
       <table className="w-full border border-gray-200">
         <thead>
           <tr className="bg-gray-100 text-left">
-            <th className="p-2">ID</th>
+            <th className="p-2">Solicitado por</th>
             <th className="p-2">Combustible</th>
             <th className="p-2">Litros</th>
             <th className="p-2">Vehículo</th>
+            <th className="p-2">Obra</th>
+            <th className="p-2">Fecha</th>
             <th className="p-2">Chofer</th>
             <th className="p-2">Acciones</th>
           </tr>
@@ -53,19 +85,30 @@ export default function ValesPendientes() {
         <tbody>
           {vales.map(vale => (
             <tr key={vale.id} className="border-t border-gray-200">
-              <td className="p-2">{vale.id}</td>
+              <td className="p-2">{vale.solicitado_nombre} {vale.solicitado_apellido}</td>
               <td className="p-2">{vale.combustible_lubricante}</td>
               <td className="p-2">{vale.litros}</td>
-              <td className="p-2">{vale.vehiculo}</td>
-              <td className="p-2">{vale.chofer}</td>
               <td className="p-2">
-                <button
-                  onClick={() => aprobarVale(vale.id)}
-                  className="px-3 py-1 bg-green-500 text-white rounded"
-                >
-                  Aprobar
-                </button>
-                //si el usuario es administrativo no mostrar el botón de aprobar
+                {vale.marca} {vale.modelo} ({vale.patente})
+              </td>
+              <td className="p-2">{vale.obra}</td>
+              <td className="p-2">{new Date(vale.fecha).toLocaleDateString()}</td>
+              <td className="p-2">{vale.encargado}</td>
+              <td className="p-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => aprobarVale(vale.id)}
+                    className="px-3 py-1 bg-green-500 text-white rounded"
+                  >
+                    Aprobar
+                  </button>
+                  <button
+                    onClick={() => eliminarVale(vale.id)}
+                    className="px-3 py-1 bg-red-600 text-white rounded"
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

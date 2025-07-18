@@ -46,17 +46,39 @@ export async function POST(req: Request) {
   }
 }
 
-// NUEVO GET
+// GET corregido para vales pendientes y aprobados
 export async function GET(req: NextRequest) {
   try {
     const aprobado = req.nextUrl.searchParams.get('aprobado'); 
-    let query = `SELECT id, combustible_lubricante, litros, vehiculo, obra, destino, encargado,
-        solicitado_por, fecha, aprobado, creado_en, kilometraje
-                 FROM vale`;
+
+    let query = `
+      SELECT 
+        v.id,
+        v.combustible_lubricante,
+        v.litros,
+        v.vehiculo,
+        v.obra,
+        v.destino,
+        v.encargado,
+        v.solicitado_por,
+        v.fecha,
+        v.aprobado,
+        v.kilometraje,
+        v.creado_en,
+        u.nombre AS solicitado_nombre,
+        u.apellido AS solicitado_apellido,
+        veh.marca,
+        veh.modelo,
+        veh.patente
+      FROM vale v
+      LEFT JOIN usuario u ON v.solicitado_por = u.id
+      LEFT JOIN vehiculo veh ON v.vehiculo::int = veh.id
+    `;
+
     const params: any[] = [];
 
     if (aprobado !== null) {
-      query += ` WHERE aprobado = $1`;
+      query += ` WHERE v.aprobado = $1`;
       params.push(aprobado === 'true');
     }
 
