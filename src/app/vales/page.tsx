@@ -8,35 +8,42 @@ export default function ValesPage() {
   const [vales, setVales] = useState<any[]>([]);
   const [filtroObra, setFiltroObra] = useState('');
   const [filtroFecha, setFiltroFecha] = useState('');
+  const [filtroOrigen, setFiltroOrigen] = useState('');
 
-  useEffect(() => {
-    const fetchVales = async () => {
-      const params = new URLSearchParams();
-      if (filtroObra) params.append('obra', filtroObra);
-      if (filtroFecha) params.append('fecha', filtroFecha);
+  // 🔹 Función para obtener datos
+  const fetchVales = async () => {
+    const params = new URLSearchParams();
+    if (filtroObra) params.append('obra', filtroObra);
+    if (filtroFecha) params.append('fecha', filtroFecha);
+    if (filtroOrigen) params.append('origen', filtroOrigen);
 
+    try {
       const res = await fetch(`/api/vale?${params.toString()}`);
-      if (!res.ok) {
-        console.error('Error al obtener vales');
-        return;
-      }
+      if (!res.ok) throw new Error('Error al obtener vales');
+
       const data = await res.json();
       setVales(data);
-    };
+    } catch (error) {
+      console.error(error);
+      setVales([]);
+    }
+  };
+
+  useEffect(() => {
     fetchVales();
-  }, [filtroObra, filtroFecha]);
+  }, []);
 
   const generarExcel = () => {
     const data = vales.map(v => ({
-      ID: v.id,
-      Combustible: v.combustible_lubricante,
+      Nro: v.id,
+      Fecha: new Date(v.fecha).toLocaleDateString(),
+      Origen: v.origen,
+      Insumo: v.combustible_lubricante,
       Litros: v.litros,
-      Vehiculo: `${v.marca} ${v.modelo} (${v.vehiculo})`,
+      Vehículo: `${v.marca} ${v.modelo} (${v.vehiculo})`,
+      Kilometraje: v.kilometraje,
       Obra: v.obra,
-      Destino: v.destino,
-      encargado: v.encargado,
-      Fecha: v.fecha,
-      Aprobado: v.aprobado ? 'Sí' : 'No',
+      Encargado: v.encargado,
     }));
 
     const workbook = XLSX.utils.book_new();
@@ -52,20 +59,18 @@ export default function ValesPage() {
     doc.setFontSize(12);
 
     let y = 30;
-
     vales.forEach(vale => {
-      doc.text(`ID: ${vale.id}`, 20, y);
-      doc.text(`Combustible: ${vale.combustible_lubricante}`, 20, y + 5);
-      doc.text(`Litros: ${vale.litros}`, 20, y + 10);
-      doc.text(`Vehiculo: ${vale.marca} ${vale.modelo} (${vale.vehiculo})`, 20, y + 15);
-      doc.text(`Obra: ${vale.obra}`, 20, y + 20);
-      doc.text(`Destino: ${vale.destino}`, 20, y + 25);
-      doc.text(`encargado: ${vale.encargado}`, 20, y + 30);
-      doc.text(`Fecha: ${vale.fecha}`, 20, y + 35);
-      doc.text(`Aprobado: ${vale.aprobado ? 'Sí' : 'No'}`, 20, y + 40);
+      doc.text(`N°: ${vale.id}`, 20, y);
+      doc.text(`Fecha: ${new Date(vale.fecha).toLocaleDateString()}`, 20, y + 5);
+      doc.text(`Origen: ${vale.origen}`, 20, y + 10);
+      doc.text(`Insumo: ${vale.combustible_lubricante}`, 20, y + 15);
+      doc.text(`Litros: ${vale.litros}`, 20, y + 20);
+      doc.text(`Vehículo: ${vale.marca} ${vale.modelo} (${vale.vehiculo})`, 20, y + 25);
+      doc.text(`Kilometraje: ${vale.kilometraje}`, 20, y + 30);
+      doc.text(`Obra: ${vale.obra}`, 20, y + 35);
+      doc.text(`Encargado: ${vale.encargado}`, 20, y + 40);
 
       y += 55;
-
       if (y > 250) {
         doc.addPage();
         y = 20;
@@ -73,11 +78,12 @@ export default function ValesPage() {
     });
     doc.save('todos_los_vales.pdf');
   };
-  
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold text-black">Historial de Vales</h1>
 
+      {/* 🔎 Filtros */}
       <div className="mb-4 flex flex-col sm:flex-row gap-4 mt-4">
         <input
           className="border rounded p-2"
@@ -91,6 +97,22 @@ export default function ValesPage() {
           value={filtroFecha}
           onChange={(e) => setFiltroFecha(e.target.value)}
         />
+        {/* Nuevo filtro por origen */}
+        <select
+          className="border rounded p-2"
+          value={filtroOrigen}
+          onChange={(e) => setFiltroOrigen(e.target.value)}
+        >
+          <option value="">Todos los orígenes</option>
+          <option value="obrador">Obrador</option>
+          <option value="estacion">Estación de servicio</option>
+        </select>
+        <button
+          onClick={fetchVales}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Buscar
+        </button>
         <div className="flex gap-2">
           <button
             onClick={generarExcel}
@@ -107,32 +129,37 @@ export default function ValesPage() {
         </div>
       </div>
 
+      {/* 📋 Tabla */}
       <div className="bg-white rounded-lg p-4 shadow mt-4">
         {vales.length === 0 && <p>No hay vales registrados.</p>}
         <table className="w-full border-collapse border border-gray-300 mt-2">
           <thead>
             <tr>
-              <th className="border border-gray-300 p-2">ID</th>
+              <th className="border border-gray-300 p-2">N°</th>
               <th className="border border-gray-300 p-2">Fecha</th>
+              <th className="border border-gray-300 p-2">Origen</th>
+              <th className="border border-gray-300 p-2">Insumo</th>
+              <th className="border border-gray-300 p-2">Litros</th>
+              <th className="border border-gray-300 p-2">Vehículo</th>
+              <th className="border border-gray-300 p-2">Kilometraje</th>
               <th className="border border-gray-300 p-2">Obra</th>
-              <th className="border border-gray-300 p-2">Destino</th>
-              <th className="border border-gray-300 p-2">Vehiculo</th>
-              <th className="border border-gray-300 p-2">encargado</th>
-              <th className="border border-gray-300 p-2">Aprobado</th>
+              <th className="border border-gray-300 p-2">Encargado</th>
             </tr>
           </thead>
           <tbody>
             {vales.map(vale => (
               <tr key={vale.id}>
                 <td className="border border-gray-300 p-2">{vale.id}</td>
-                <td className="border border-gray-300 p-2">{vale.fecha}</td>
-                <td className="border border-gray-300 p-2">{vale.obra}</td>
-                <td className="border border-gray-300 p-2">{vale.destino}</td>
+                <td className="border border-gray-300 p-2">{new Date(vale.fecha).toLocaleDateString()}</td>
+                <td className="border border-gray-300 p-2">{vale.origen}</td>
+                <td className="border border-gray-300 p-2">{vale.combustible_lubricante}</td>
+                <td className="border border-gray-300 p-2">{vale.litros}</td>
                 <td className="border border-gray-300 p-2">
                   {vale.marca} {vale.modelo} ({vale.vehiculo})
                 </td>
+                <td className="border border-gray-300 p-2">{vale.kilometraje}</td>
+                <td className="border border-gray-300 p-2">{vale.obra}</td>
                 <td className="border border-gray-300 p-2">{vale.encargado}</td>
-                <td className="border border-gray-300 p-2">{vale.aprobado ? 'Sí' : 'No'}</td>
               </tr>
             ))}
           </tbody>

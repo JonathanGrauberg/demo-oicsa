@@ -43,3 +43,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Error al crear insumo' }, { status: 500 });
   }
 }
+
+//AGREGAR DE DONDE VIENE -  OBRADOR
+// 

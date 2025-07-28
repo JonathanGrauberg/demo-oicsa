@@ -11,39 +11,26 @@ const CrearVale = () => {
     encargado: '',
     fecha: '',
     kilometraje: '' as number | '',
+    origen: 'obrador', // 🆕
   });
 
   const [vehiculos, setVehiculos] = useState([] as any[]);
   const [obras, setObras] = useState([] as any[]);
-  const [insumos, setInsumos] = useState([] as any[]); // 🆕 stock
+  const [insumos, setInsumos] = useState([] as any[]);
 
   const userId = 1;
 
   useEffect(() => {
-    const fetchVehiculos = async () => {
-      const res = await fetch('/api/vehiculo');
-      const data = await res.json();
-      setVehiculos(data);
+    const fetchData = async () => {
+      const vehiculos = await fetch('/api/vehiculo').then(r => r.json());
+      const obras = await fetch('/api/obra').then(r => r.json());
+      const stock = await fetch('/api/stock').then(r => r.json());
+      setVehiculos(vehiculos);
+      setObras(obras);
+      setInsumos(stock);
     };
+    fetchData();
 
-    const fetchObras = async () => {
-      const res = await fetch('/api/obra');
-      const data = await res.json();
-      setObras(data);
-    };
-
-    const fetchStock = async () => {
-      const res = await fetch('/api/stock');
-      const data = await res.json();
-      setInsumos(data);
-    };
-
-    fetchVehiculos();
-    fetchObras();
-    fetchStock();
-  }, []);
-
-  useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     setFormData(prev => ({ ...prev, fecha: today }));
   }, []);
@@ -81,6 +68,7 @@ const CrearVale = () => {
         encargado: '',
         fecha: '',
         kilometraje: '',
+        origen: 'obrador',
       });
     } else {
       alert('Error al generar vale');
@@ -91,8 +79,19 @@ const CrearVale = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Pedido de Nuevo Vale</h1>
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        
-        {/* 🆕 Selector de combustible/lubricante */}
+
+        {/* 🆕 Selector de Origen */}
+        <select
+          name="origen"
+          value={formData.origen}
+          onChange={handleChange}
+          className="input-style"
+          required
+        >
+          <option value="obrador">Obrador</option>
+          <option value="estacion">Estación de servicio</option>
+        </select>
+
         <select
           name="combustible_lubricante"
           value={formData.combustible_lubricante}
@@ -195,6 +194,7 @@ const CrearVale = () => {
                 encargado: '',
                 fecha: '',
                 kilometraje: '',
+                origen: 'obrador',
               })
             }
             className="px-4 py-2 bg-gray-300 text-black rounded"
@@ -202,7 +202,7 @@ const CrearVale = () => {
             Cancelar
           </button>
           <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">
-            Crear Vale
+            Crear pedido
           </button>
         </div>
       </form>

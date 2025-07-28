@@ -80,6 +80,7 @@ export default function ValesPendientes() {
             <th className="p-2">Fecha</th>
             <th className="p-2">Chofer</th>
             <th className="p-2">Acciones</th>
+            <th className="p-2">Tipo de surtidor</th>
           </tr>
         </thead>
         <tbody>

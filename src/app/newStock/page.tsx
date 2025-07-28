@@ -60,7 +60,7 @@ const NewStock = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Registrar nuevo insumo de stock</h1>
+      <h1 className="text-2xl font-bold mb-4">Registrar nuevo insumo de Obrador</h1>
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">Nombre</label>

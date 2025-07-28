@@ -1,55 +1,11 @@
 // app/api/vale/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
-import { Vale } from '@/lib/types/vale';
 
-export async function POST(req: Request) {
-  try {
-    const data: Vale = await req.json();
-    const {
-      combustible_lubricante,
-      litros,
-      vehiculo,
-      obra,
-      destino,
-      encargado,
-      solicitado_por,
-      fecha,
-      kilometraje
-    } = data;
-
-    const query = `
-      INSERT INTO vale (
-        combustible_lubricante, litros, vehiculo, obra, destino, encargado,
-        solicitado_por, fecha, kilometraje, aprobado, creado_en
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,false,NOW())
-      RETURNING *;
-    `;
-
-    const values = [
-      combustible_lubricante,
-      litros,
-      vehiculo,
-      obra,
-      destino,
-      encargado,
-      solicitado_por,
-      fecha,
-      kilometraje
-    ];
-
-    const result = await pool.query(query, values);
-    return NextResponse.json({ vale: result.rows[0] }, { status: 201 });
-  } catch (error) {
-    console.error('Error al crear vale:', error);
-    return NextResponse.json({ error: 'Error al crear vale' }, { status: 500 });
-  }
-}
-
-// GET corregido para vales pendientes y aprobados
 export async function GET(req: NextRequest) {
   try {
-    const aprobado = req.nextUrl.searchParams.get('aprobado'); 
+    const aprobado = req.nextUrl.searchParams.get('aprobado');
+    const origen = req.nextUrl.searchParams.get('origen');
 
     let query = `
       SELECT 
@@ -65,6 +21,7 @@ export async function GET(req: NextRequest) {
         v.aprobado,
         v.kilometraje,
         v.creado_en,
+        v.origen, -- ✅ nuevo campo
         u.nombre AS solicitado_nombre,
         u.apellido AS solicitado_apellido,
         veh.marca,
@@ -72,14 +29,21 @@ export async function GET(req: NextRequest) {
         veh.patente
       FROM vale v
       LEFT JOIN usuario u ON v.solicitado_por = u.id
-      LEFT JOIN vehiculo veh ON v.vehiculo::int = veh.id
+      LEFT JOIN vehiculo veh ON v.vehiculo = veh.patente
+      WHERE 1=1
     `;
 
     const params: any[] = [];
+    let paramIndex = 1;
 
     if (aprobado !== null) {
-      query += ` WHERE v.aprobado = $1`;
+      query += ` AND v.aprobado = $${paramIndex++}`;
       params.push(aprobado === 'true');
+    }
+
+    if (origen !== null) {
+      query += ` AND v.origen = $${paramIndex++}`;
+      params.push(origen);
     }
 
     const result = await pool.query(query, params);
