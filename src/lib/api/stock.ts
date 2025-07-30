@@ -2,7 +2,7 @@ import { StockItem } from '@/lib/types/stock';
 
 // 👉 Obtener todo el stock
 export async function obtenerStock(): Promise<StockItem[]> {
-  const res = await fetch('http://localhost:3000/api/stock', {
+  const res = await fetch('/api/stock', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
