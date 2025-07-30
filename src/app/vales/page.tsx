@@ -14,23 +14,25 @@ export default function ValesPage() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
 
   // 🔹 Función para obtener datos
-  const fetchVales = async () => {
-    const params = new URLSearchParams();
-    if (filtroObra) params.append('obra', filtroObra);
-    if (filtroFecha) params.append('fecha', filtroFecha);
-    if (filtroOrigen) params.append('origen', filtroOrigen);
+ const fetchVales = async () => {
+  const params = new URLSearchParams();
+  if (filtroObra) params.append('obra', filtroObra);
+  if (filtroFecha) params.append('fecha', filtroFecha);
+  if (filtroOrigen) params.append('origen', filtroOrigen);
 
-    try {
-      const res = await fetch(`${baseUrl}/api/vale?${params.toString()}`);
-      if (!res.ok) throw new Error('Error al obtener vales');
+  try {
+    const query = params.toString();
+    const res = await fetch(`/api/vale${query ? `?${query}` : ''}`);
+    if (!res.ok) throw new Error('Error al obtener vales');
 
-      const data = await res.json();
-      setVales(data);
-    } catch (error) {
-      console.error(error);
-      setVales([]);
-    }
-  };
+    const data = await res.json();
+    setVales(data);
+  } catch (error) {
+    console.error(error);
+    setVales([]);
+  }
+};
+
 
   useEffect(() => {
     fetchVales();

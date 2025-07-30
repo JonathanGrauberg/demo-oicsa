@@ -1,8 +1,9 @@
 import { StockItem } from '@/lib/types/stock';
 
-// 👉 Obtener todo el stock
 export async function obtenerStock(): Promise<StockItem[]> {
-  const res = await fetch('/api/stock', {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
+  const res = await fetch(`${baseUrl}/api/stock`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
