@@ -1,4 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import { Obra } from "@/lib/types/obra";
+
 
 async function getObras() {
   const res = await fetch('http://localhost:3000/api/obra', {

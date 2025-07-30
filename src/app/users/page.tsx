@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Usuario } from "@/lib/types/types"
 
 async function getUsuarios() {

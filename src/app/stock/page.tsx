@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { obtenerStock } from "@/lib/api/stock";
 import { StockItem } from "@/lib/types/stock";
 

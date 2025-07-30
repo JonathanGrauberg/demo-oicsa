@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Vehiculo } from "@/lib/types/vehiculo";
 
 async function getVehiculos() {
