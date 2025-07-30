@@ -19,6 +19,7 @@ type Vale = {
   marca: string;
   modelo: string;
   patente: string;
+  origen: string;
 };
 
 export default function ValesPendientes() {
@@ -80,40 +81,43 @@ export default function ValesPendientes() {
             <th className="p-2">Fecha</th>
             <th className="p-2">Chofer</th>
             <th className="p-2">Acciones</th>
-            <th className="p-2">Tipo de surtidor</th>
+            <th className="p-2">Origen de surtidor</th>
           </tr>
         </thead>
         <tbody>
-          {vales.map(vale => (
-            <tr key={vale.id} className="border-t border-gray-200">
-              <td className="p-2">{vale.solicitado_nombre} {vale.solicitado_apellido}</td>
-              <td className="p-2">{vale.combustible_lubricante}</td>
-              <td className="p-2">{vale.litros}</td>
-              <td className="p-2">
-                {vale.marca} {vale.modelo} ({vale.patente})
-              </td>
-              <td className="p-2">{vale.obra}</td>
-              <td className="p-2">{new Date(vale.fecha).toLocaleDateString()}</td>
-              <td className="p-2">{vale.encargado}</td>
-              <td className="p-2">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => aprobarVale(vale.id)}
-                    className="px-3 py-1 bg-green-500 text-white rounded"
-                  >
-                    Aprobar
-                  </button>
-                  <button
-                    onClick={() => eliminarVale(vale.id)}
-                    className="px-3 py-1 bg-red-600 text-white rounded"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
+  {vales.map(vale => (
+    <tr key={vale.id} className="border-t border-gray-200">
+      <td className="p-2">{vale.solicitado_nombre} {vale.solicitado_apellido}</td>
+      <td className="p-2">{vale.combustible_lubricante}</td>
+      <td className="p-2">{vale.litros}</td>
+      <td className="p-2">
+        {vale.marca} {vale.modelo} ({vale.patente})
+      </td>
+      <td className="p-2">{vale.obra}</td>
+      <td className="p-2">{new Date(vale.fecha).toLocaleDateString()}</td>
+      <td className="p-2">{vale.encargado}</td>
+      <td className="p-2">
+        <div className="flex gap-2">
+          <button
+            onClick={() => aprobarVale(vale.id)}
+            className="px-3 py-1 bg-green-500 text-white rounded"
+          >
+            Aprobar
+          </button>
+          <button
+            onClick={() => eliminarVale(vale.id)}
+            className="px-3 py-1 bg-red-600 text-white rounded"
+          >
+            Eliminar
+          </button>
+        </div>
+      </td>
+      {/* ✅ Ahora sí, fuera del td de acciones */}
+      <td className="p-2">{vale.origen}</td>
+    </tr>
+  ))}
+</tbody>
+
       </table>
     </div>
   );

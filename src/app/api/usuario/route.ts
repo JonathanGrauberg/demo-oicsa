@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     await pool.query(
       `INSERT INTO usuario (nombre, apellido, email, rol, password)
        VALUES ($1, $2, $3, $4, $5)`,
-      [nombre, apellido, email, rol, hashedPassword]
+      [nombre, apellido, email, rol.toLowerCase(), hashedPassword]
     );
 
     return NextResponse.json({ success: true }, { status: 200 });

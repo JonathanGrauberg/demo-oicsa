@@ -13,48 +13,78 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
 
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (res.ok) {
-      router.push('/dashboard'); // Redirige al dashboard después de login
-    } else {
       const data = await res.json();
-      setError(data.error || 'Error de autenticación');
+
+      if (!res.ok) {
+        setError(data.error || 'Error al iniciar sesión');
+        return;
+      }
+
+      console.log("✅ Token recibido:", data.token);
+
+      let redirectTo = '/';
+      if (data.rol) {
+        switch (data.rol) {
+          case 'superusuario':
+            redirectTo = '/dashboard';
+            break;
+          case 'administrativo':
+            redirectTo = '/vales-aprobados';
+            break;
+          case 'aprobador':
+            redirectTo = '/vales-pendientes';
+            break;
+          case 'encargado':
+            redirectTo = '/newvoucher';
+            break;
+          default:
+            redirectTo = '/';
+        }
+      }
+
+      // 🟢 Esperamos un poco antes de redirigir
+      setTimeout(() => {
+        router.push(redirectTo);
+        window.location.href = redirectTo; // Fallback forzando navegación
+      }, 300);
+
+    } catch (err) {
+      console.error('Error al conectar:', err);
+      setError('Error en el servidor');
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-lg shadow-md w-96"
+        className="bg-white p-6 rounded shadow-md w-96"
       >
-        <h1 className="text-2xl font-bold mb-4">Iniciar Sesión</h1>
-
-        {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
-
+        <h2 className="text-2xl font-bold mb-4 text-center">Iniciar Sesión</h2>
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 mb-3 border rounded"
+          className="w-full p-2 border rounded mb-4"
           required
         />
-
         <input
           type="password"
           placeholder="Contraseña"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 mb-3 border rounded"
+          className="w-full p-2 border rounded mb-4"
           required
         />
-
+        {error && <p className="text-red-500 mb-2">{error}</p>}
         <button
           type="submit"
           className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"

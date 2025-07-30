@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         v.aprobado,
         v.kilometraje,
         v.creado_en,
-        v.origen, -- ✅ nuevo campo
+        v.origen,
         u.nombre AS solicitado_nombre,
         u.apellido AS solicitado_apellido,
         veh.marca,
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         veh.patente
       FROM vale v
       LEFT JOIN usuario u ON v.solicitado_por = u.id
-      LEFT JOIN vehiculo veh ON v.vehiculo = veh.patente
+      LEFT JOIN vehiculo veh ON CAST(v.vehiculo AS INTEGER) = veh.id
       WHERE 1=1
     `;
 
@@ -51,5 +51,61 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Error al obtener vales:', error);
     return NextResponse.json({ error: 'Error al obtener vales' }, { status: 500 });
+  }
+}
+
+// ✅ POST para registrar nuevo vale
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    console.log("📥 Datos recibidos para crear vale:", body); // 🟢 DEBUG
+
+    const {
+      combustible_lubricante,
+      litros,
+      vehiculo,
+      obra,
+      destino,
+      encargado,
+      solicitado_por,
+      fecha,
+      kilometraje,
+      origen
+    } = body;
+
+    // Validaciones
+    if (
+      !combustible_lubricante ||
+      !litros ||
+      !vehiculo ||
+      !obra ||
+      !destino ||
+      !encargado ||
+      !solicitado_por ||
+      !fecha ||
+      !origen
+    ) {
+      console.warn("⚠️ Campos faltantes:", body);
+      return NextResponse.json(
+        { error: 'Faltan campos obligatorios' },
+        { status: 400 }
+      );
+    }
+
+    // Insertar en la DB
+    const result = await pool.query(
+      `INSERT INTO vale 
+      (combustible_lubricante, litros, vehiculo, obra, destino, encargado, solicitado_por, fecha, kilometraje, origen, aprobado) 
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,false)
+      RETURNING *`,
+      [combustible_lubricante, litros, vehiculo, obra, destino, encargado, solicitado_por, fecha, kilometraje, origen]
+    );
+
+    console.log("✅ Vale creado correctamente:", result.rows[0]);
+    return NextResponse.json(result.rows[0], { status: 201 });
+
+  } catch (error) {
+    console.error("🔥 Error al crear vale:", error);
+    return NextResponse.json({ error: 'Error en el servidor' }, { status: 500 });
   }
 }

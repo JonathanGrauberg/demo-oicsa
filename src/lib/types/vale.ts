@@ -1,5 +1,3 @@
-// lib/types/vale.ts
-
 export interface Vale {
   id?: number;
   combustible_lubricante: string;
@@ -14,4 +12,5 @@ export interface Vale {
   aprobado_por?: number | null;
   creado_en?: string;
   kilometraje?: number;
+  origen: 'obrador' | 'estacion'; // 🆕 agregado
 }
