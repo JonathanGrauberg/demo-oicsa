@@ -1,7 +1,9 @@
 import { Vale } from '@/lib/types/vale';
 
 export async function registrarVale(data: Vale) {
-  const res = await fetch('/api/vale', {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
+  const res = await fetch(`${baseUrl}/api/vale`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
