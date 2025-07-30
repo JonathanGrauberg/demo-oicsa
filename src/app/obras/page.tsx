@@ -4,19 +4,22 @@ import { Obra } from "@/lib/types/obra";
 
 
 async function getObras() {
-  const res = await fetch('/api/obra', {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+
+  const res = await fetch(`${baseUrl}/api/obra`, {
     headers: {
-      'Content-Type': 'application/json'
+      "Content-Type": "application/json",
     },
-    cache: 'no-store'
+    cache: "no-store",
   });
 
   if (!res.ok) {
-    throw new Error('Error al obtener obras');
+    throw new Error("Error al obtener obras");
   }
 
   return res.json();
 }
+
 
 export default async function ObrasPage() {
   const obras: Obra[] = await getObras();

@@ -11,6 +11,8 @@ export default function ValesPage() {
   const [filtroFecha, setFiltroFecha] = useState('');
   const [filtroOrigen, setFiltroOrigen] = useState('');
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+
   // 🔹 Función para obtener datos
   const fetchVales = async () => {
     const params = new URLSearchParams();
@@ -19,7 +21,7 @@ export default function ValesPage() {
     if (filtroOrigen) params.append('origen', filtroOrigen);
 
     try {
-      const res = await fetch(`/api/vale?${params.toString()}`);
+      const res = await fetch(`${baseUrl}/api/vale?${params.toString()}`);
       if (!res.ok) throw new Error('Error al obtener vales');
 
       const data = await res.json();
@@ -98,7 +100,6 @@ export default function ValesPage() {
           value={filtroFecha}
           onChange={(e) => setFiltroFecha(e.target.value)}
         />
-        {/* Nuevo filtro por origen */}
         <select
           className="border rounded p-2"
           value={filtroOrigen}

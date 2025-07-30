@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 import { Vehiculo } from "@/lib/types/vehiculo";
 
 async function getVehiculos() {
-  const fetchData = await fetch('/api/vehiculo', {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const fetchData = await fetch(`${baseUrl}/api/vehiculo`, {
     headers: {
       "Content-Type": 'application/json'
     },

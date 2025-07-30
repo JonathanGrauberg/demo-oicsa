@@ -27,6 +27,8 @@ const VehicleRegistration = () => {
           observaciones: '',
   });
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
@@ -38,7 +40,7 @@ const VehicleRegistration = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch('/api/vehiculo', {
+      const res = await fetch(`${baseUrl}/api/vehiculo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

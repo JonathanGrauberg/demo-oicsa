@@ -1,7 +1,6 @@
 'use client';
 export const dynamic = "force-dynamic";
 
-
 import { useState, useEffect } from 'react';
 
 type Vale = {
@@ -27,14 +26,16 @@ type Vale = {
 export default function ValesPendientes() {
   const [vales, setVales] = useState<Vale[]>([]);
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+
   useEffect(() => {
-    fetch('/api/vale?aprobado=false')
+    fetch(`${baseUrl}/api/vale?aprobado=false`)
       .then(res => res.json())
       .then(data => setVales(data));
   }, []);
 
   const aprobarVale = async (id: number) => {
-    const res = await fetch('/api/vale/aprobar', {
+    const res = await fetch(`${baseUrl}/api/vale/aprobar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
@@ -55,7 +56,7 @@ export default function ValesPendientes() {
 
     if (!confirmar) return;
 
-    const res = await fetch('/api/vale/eliminar', {
+    const res = await fetch(`${baseUrl}/api/vale/eliminar`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
@@ -87,39 +88,37 @@ export default function ValesPendientes() {
           </tr>
         </thead>
         <tbody>
-  {vales.map(vale => (
-    <tr key={vale.id} className="border-t border-gray-200">
-      <td className="p-2">{vale.solicitado_nombre} {vale.solicitado_apellido}</td>
-      <td className="p-2">{vale.combustible_lubricante}</td>
-      <td className="p-2">{vale.litros}</td>
-      <td className="p-2">
-        {vale.marca} {vale.modelo} ({vale.patente})
-      </td>
-      <td className="p-2">{vale.obra}</td>
-      <td className="p-2">{new Date(vale.fecha).toLocaleDateString()}</td>
-      <td className="p-2">{vale.encargado}</td>
-      <td className="p-2">
-        <div className="flex gap-2">
-          <button
-            onClick={() => aprobarVale(vale.id)}
-            className="px-3 py-1 bg-green-500 text-white rounded"
-          >
-            Aprobar
-          </button>
-          <button
-            onClick={() => eliminarVale(vale.id)}
-            className="px-3 py-1 bg-red-600 text-white rounded"
-          >
-            Eliminar
-          </button>
-        </div>
-      </td>
-      {/* ✅ Ahora sí, fuera del td de acciones */}
-      <td className="p-2">{vale.origen}</td>
-    </tr>
-  ))}
-</tbody>
-
+          {vales.map(vale => (
+            <tr key={vale.id} className="border-t border-gray-200">
+              <td className="p-2">{vale.solicitado_nombre} {vale.solicitado_apellido}</td>
+              <td className="p-2">{vale.combustible_lubricante}</td>
+              <td className="p-2">{vale.litros}</td>
+              <td className="p-2">
+                {vale.marca} {vale.modelo} ({vale.patente})
+              </td>
+              <td className="p-2">{vale.obra}</td>
+              <td className="p-2">{new Date(vale.fecha).toLocaleDateString()}</td>
+              <td className="p-2">{vale.encargado}</td>
+              <td className="p-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => aprobarVale(vale.id)}
+                    className="px-3 py-1 bg-green-500 text-white rounded"
+                  >
+                    Aprobar
+                  </button>
+                  <button
+                    onClick={() => eliminarVale(vale.id)}
+                    className="px-3 py-1 bg-red-600 text-white rounded"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </td>
+              <td className="p-2">{vale.origen}</td>
+            </tr>
+          ))}
+        </tbody>
       </table>
     </div>
   );

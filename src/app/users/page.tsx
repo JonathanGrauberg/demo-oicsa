@@ -1,16 +1,22 @@
 export const dynamic = "force-dynamic";
 
-import { Usuario } from "@/lib/types/types"
+import { Usuario } from "@/lib/types/types";
 
 async function getUsuarios() {
-  const fetchData = await fetch('/api/usuario', {
-    headers: {
-      "Content-Type": 'application/json'
-    }
-  });
-  const res = await fetchData.json();
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
-  return res;
+  const res = await fetch(`${baseUrl}/api/usuario`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    cache: "no-store", // para forzar siempre datos frescos
+  });
+
+  if (!res.ok) {
+    throw new Error("Error al obtener usuarios");
+  }
+
+  return res.json();
 }
 
 export default async function Home() {
