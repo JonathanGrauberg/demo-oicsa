@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { Usuario } from "@/lib/types/types"
 
 async function getUsuarios() {
-  const fetchData = await fetch('http://localhost:3000/api/usuario', {
+  const fetchData = await fetch('/api/usuario', {
     headers: {
       "Content-Type": 'application/json'
     }

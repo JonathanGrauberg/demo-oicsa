@@ -4,7 +4,7 @@ import { Obra } from "@/lib/types/obra";
 
 
 async function getObras() {
-  const res = await fetch('http://localhost:3000/api/obra', {
+  const res = await fetch('/api/obra', {
     headers: {
       'Content-Type': 'application/json'
     },
