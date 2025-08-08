@@ -159,9 +159,11 @@ export default function ValesPage() {
                 <td className="border border-gray-300 p-2">{vale.origen}</td>
                 <td className="border border-gray-300 p-2">{vale.combustible_lubricante}</td>
                 <td className="border border-gray-300 p-2">{vale.litros}</td>
-                <td className="border border-gray-300 p-2">
-                  {vale.marca} {vale.modelo} ({vale.vehiculo})
+
+                <td className="p-2">                  
+                {vale.marca} {vale.modelo} ({vale.patente})
                 </td>
+
                 <td className="border border-gray-300 p-2">{vale.kilometraje}</td>
                 <td className="border border-gray-300 p-2">{vale.obra}</td>
                 <td className="border border-gray-300 p-2">{vale.encargado}</td>

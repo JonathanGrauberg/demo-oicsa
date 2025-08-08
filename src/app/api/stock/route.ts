@@ -44,5 +44,26 @@ export async function POST(req: NextRequest) {
   }
 }
 
-//AGREGAR DE DONDE VIENE -  OBRADOR
-// 
+// ✅ PUT: Actualizar cantidad de un insumo en stock
+export async function PUT(req: NextRequest) {
+  try {
+    const { id, cantidad } = await req.json();
+
+    if (!id || cantidad === undefined) {
+      return NextResponse.json({ error: 'Faltan datos para actualizar' }, { status: 400 });
+    }
+
+    const result = await pool.query(
+      `UPDATE stock
+       SET cantidad = $1, creado_en = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING *`,
+      [cantidad, id]
+    );
+
+    return NextResponse.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error al actualizar stock:', error);
+    return NextResponse.json({ error: 'Error al actualizar stock' }, { status: 500 });
+  }
+}

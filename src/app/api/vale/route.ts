@@ -1,4 +1,3 @@
-// app/api/vale/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 
@@ -24,12 +23,14 @@ export async function GET(req: NextRequest) {
         v.origen,
         u.nombre AS solicitado_nombre,
         u.apellido AS solicitado_apellido,
-        veh.marca,
-        veh.modelo,
-        veh.patente
+        COALESCE(veh.marca, '') AS marca,
+        COALESCE(veh.modelo, '') AS modelo,
+        COALESCE(veh.patente, '') AS patente
       FROM vale v
       LEFT JOIN usuario u ON v.solicitado_por = u.id
-      LEFT JOIN vehiculo veh ON CAST(v.vehiculo AS INTEGER) = veh.id
+      LEFT JOIN vehiculo veh 
+        ON v.vehiculo ~ '^[0-9]+$' 
+        AND CAST(v.vehiculo AS INTEGER) = veh.id
       WHERE 1=1
     `;
 
@@ -53,6 +54,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Error al obtener vales' }, { status: 500 });
   }
 }
+
+
 
 // ✅ POST para registrar nuevo vale
 export async function POST(req: NextRequest) {
