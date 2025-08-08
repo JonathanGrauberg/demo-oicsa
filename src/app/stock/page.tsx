@@ -45,7 +45,7 @@ export default function StockPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Stock de Combustibles y Lubricantes (OBRADOR)</h1>
+      <h1 className="text-3xl font-bold mb-6">Stock de Combustibles y Lubricantes</h1>
 
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white border border-gray-300 rounded-md">

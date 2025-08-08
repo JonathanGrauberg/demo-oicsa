@@ -82,11 +82,34 @@ export async function POST(req: NextRequest) {
 // ✅ AQUÍ AGREGAMOS EL GET
 export async function GET(req: NextRequest) {
   try {
-    const result = await pool.query('SELECT id, marca, modelo, patente FROM vehiculo');
+    const result = await pool.query('SELECT id, marca, modelo, patente, kilometraje FROM vehiculo');
     return NextResponse.json(result.rows);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Error al obtener vehículos' }, { status: 500 });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const { id, kilometraje } = await req.json();
+
+    if (!id || kilometraje === undefined) {
+      return NextResponse.json({ error: 'Faltan datos para actualizar' }, { status: 400 });
+    }
+
+    const result = await pool.query(
+      `UPDATE vehiculo
+       SET kilometraje = $1
+       WHERE id = $2
+       RETURNING *`,
+      [kilometraje, id]
+    );
+
+    return NextResponse.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error al actualizar kilometraje:', error);
+    return NextResponse.json({ error: 'Error al actualizar kilometraje' }, { status: 500 });
   }
 }
 
