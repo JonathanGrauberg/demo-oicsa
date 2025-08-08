@@ -8,10 +8,10 @@ interface TokenPayload {
 
 const menuGroups = [
   {
-    title: '📊 Panel y Reportes',
+    title: '📊 Panel',
     items: [
       { label: 'Dashboard', path: '/dashboard', roles: ['superusuario', 'administrativo'] },
-      { label: 'Panel de Control', path: '/', roles: ['superusuario'] },
+      
     ],
   },
   {
