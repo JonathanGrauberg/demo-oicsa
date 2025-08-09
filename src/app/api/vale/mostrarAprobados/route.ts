@@ -4,9 +4,9 @@ import { pool } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
-    const obra = req.nextUrl.searchParams.get('obra');
-    const fecha = req.nextUrl.searchParams.get('fecha');
-    const origen = req.nextUrl.searchParams.get('origen'); // ✅ Nuevo filtro
+    const obra   = req.nextUrl.searchParams.get('obra');
+    const fecha  = req.nextUrl.searchParams.get('fecha');
+    const origen = req.nextUrl.searchParams.get('origen');
 
     let query = `
       SELECT 
@@ -21,34 +21,43 @@ export async function GET(req: NextRequest) {
         v.fecha,
         v.aprobado,
         v.kilometraje,
-        v.origen, -- ✅ Mostrar origen
+        v.origen,
         v.creado_en,
-        u.nombre AS solicitado_nombre,
+        u.nombre  AS solicitado_nombre,
         u.apellido AS solicitado_apellido,
         veh.marca,
         veh.modelo,
         veh.patente
       FROM vale v
       LEFT JOIN usuario u ON v.solicitado_por = u.id
-      LEFT JOIN vehiculo veh ON v.vehiculo = veh.patente
+      -- 👇 Match por id numérico O por patente (case-insensitive)
+      LEFT JOIN LATERAL (
+        SELECT vv.marca, vv.modelo, vv.patente
+        FROM vehiculo vv
+        WHERE (
+          (v.vehiculo ~ '^[0-9]+$' AND vv.id = CAST(v.vehiculo AS INTEGER))
+          OR
+          (LOWER(vv.patente) = LOWER(v.vehiculo))
+        )
+        ORDER BY vv.id
+        LIMIT 1
+      ) AS veh ON TRUE
       WHERE v.aprobado = true
     `;
 
     const params: any[] = [];
-    let paramIndex = 1;
+    let i = 1;
 
     if (obra) {
-      query += ` AND LOWER(v.obra) LIKE LOWER($${paramIndex++})`;
+      query += ` AND LOWER(v.obra) LIKE LOWER($${i++})`;
       params.push(`%${obra}%`);
     }
-
     if (fecha) {
-      query += ` AND DATE(v.fecha) = $${paramIndex++}`;
+      query += ` AND DATE(v.fecha) = $${i++}`;
       params.push(fecha);
     }
-
-    if (origen) { 
-      query += ` AND v.origen = $${paramIndex++}`;
+    if (origen) {
+      query += ` AND v.origen = $${i++}`;
       params.push(origen);
     }
 
