@@ -1,17 +1,14 @@
+export type Rol = 'superusuario' | 'administrativo' | 'encargado' | 'aprobador' | 'chofer';
+
 export interface Usuario {
   id: number;
   nombre: string;
   apellido: string;
   email: string;
-  rol: 'superusuario' | 'administrativo' | 'encargado' | 'aprobador';
+  rol: Rol;
 }
 
-
-// Si querés mantener uno separado para crear:
-export interface UsuarioCreate {
-  nombre: string;
-  apellido: string;
-  email: string;
-  rol: 'superusuario' | 'administrativo' | 'encargado' | 'aprobador';
-  password: string;
-}
+// Crear: password SOLO requerido si NO es chofer
+export type UsuarioCreate =
+  | { nombre: string; apellido: string; email: string; rol: 'chofer'; password?: never }
+  | { nombre: string; apellido: string; email: string; rol: Exclude<Rol, 'chofer'>; password: string };

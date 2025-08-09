@@ -14,14 +14,29 @@ const NewUser = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [passwordsMatch, setPasswordsMatch] = useState(true);
-  const [emailExists, setEmailExists] = useState(false); // 🆕
-  const [checkingEmail, setCheckingEmail] = useState(false); // 🆕
+  const [emailExists, setEmailExists] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+
+  const isChofer = formData.rol?.toLowerCase() === 'chofer';
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
     setFormData(prev => {
       const updated = { ...prev, [name]: value };
+
+      // Si cambia el rol a "chofer", limpiamos password y confirm, y damos por válida la coincidencia
+      if (name === 'rol') {
+        if (value.toLowerCase() === 'chofer') {
+          updated.password = '';
+          updated.confirmPassword = '';
+          setPasswordsMatch(true);
+        } else {
+          // Si no es chofer, volvemos a evaluar coincidencia
+          setPasswordsMatch(updated.password === updated.confirmPassword);
+        }
+      }
+
       if (name === 'password' || name === 'confirmPassword') {
         setPasswordsMatch(updated.password === updated.confirmPassword);
       }
@@ -29,29 +44,33 @@ const NewUser = () => {
     });
   };
 
-  // 🆕 Verificación de e‑mail cuando cambia
+  // Verificación de e-mail cuando cambia
   useEffect(() => {
     const checkEmail = async () => {
-      if (!formData.email.includes('@')) {
+      if (!formData.email || !formData.email.includes('@')) {
         setEmailExists(false);
         return;
       }
       setCheckingEmail(true);
-      const res = await fetch(`/api/usuario/existe?email=${encodeURIComponent(formData.email)}`);
-      const data = await res.json();
-      setEmailExists(data.existe);
-      setCheckingEmail(false);
+      try {
+        const res = await fetch(`/api/usuario/existe?email=${encodeURIComponent(formData.email)}`);
+        const data = await res.json();
+        setEmailExists(Boolean(data.existe));
+      } catch {
+        // si falla, no bloqueamos el flujo
+        setEmailExists(false);
+      } finally {
+        setCheckingEmail(false);
+      }
     };
-    if (formData.email) {
-      const timeout = setTimeout(checkEmail, 500);
-      return () => clearTimeout(timeout);
-    }
+    const timeout = setTimeout(checkEmail, 500);
+    return () => clearTimeout(timeout);
   }, [formData.email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!passwordsMatch) {
+    if (!isChofer && !passwordsMatch) {
       alert('Las contraseñas no coinciden');
       return;
     }
@@ -61,16 +80,22 @@ const NewUser = () => {
     }
 
     try {
+      const payload: any = {
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+        email: formData.email,
+        rol: formData.rol,
+      };
+
+      // Solo enviamos password si NO es chofer
+      if (!isChofer) {
+        payload.password = formData.password;
+      }
+
       const res = await fetch('/api/usuario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: formData.nombre,
-          apellido: formData.apellido,
-          email: formData.email,
-          rol: formData.rol,
-          password: formData.password
-        })
+        body: JSON.stringify(payload)
       });
       const result = await res.json();
 
@@ -85,7 +110,7 @@ const NewUser = () => {
           confirmPassword: ''
         });
       } else {
-        alert('Error al registrar usuario: ' + result.error);
+        alert('Error al registrar usuario: ' + (result?.error || 'Desconocido'));
       }
     } catch (err) {
       alert('Error en la conexión con el servidor');
@@ -130,10 +155,10 @@ const NewUser = () => {
                   required
                 />
                 {checkingEmail && (
-                  <span className="text-gray-500 text-sm">Comprobando...</span> // 🆕
+                  <span className="text-gray-500 text-sm">Comprobando...</span>
                 )}
                 {emailExists && (
-                  <span className="text-red-500 text-sm">Email ya existente</span> // 🆕
+                  <span className="text-red-500 text-sm">Email ya existente</span>
                 )}
               </div>
 
@@ -147,11 +172,16 @@ const NewUser = () => {
               >
                 <option value="">Seleccionar rol...</option>
                 <option value="Encargado">Encargado</option>
-                <option value="administrativo">Administrativo</option>
-                <option value="superusuario">Superusuario</option>
+                <option value="Aprobador">Aprobador</option>
+                <option value="Administrativo">Administrativo</option>
+                <option value="Superusuario">Superusuario</option>
+                <option value="Chofer">Chofer</option>
               </select>
 
-              <label className="block text-sm font-medium text-gray-700 mt-2">Contraseña</label>
+              {/* Contraseñas: se desactivan si es chofer */}
+              <label className="block text-sm font-medium text-gray-700 mt-2">
+                Contraseña {isChofer && <span className="text-gray-400">(no requerida para chofer)</span>}
+              </label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -159,12 +189,15 @@ const NewUser = () => {
                   value={formData.password}
                   onChange={handleChange}
                   className="block w-full rounded-md border-gray-300 shadow-sm pr-10"
-                  required
+                  disabled={isChofer}
+                  required={!isChofer}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 text-gray-500"
+                  disabled={isChofer}
+                  aria-disabled={isChofer}
                 >
                   {showPassword ? '🙈' : '👁️'}
                 </button>
@@ -177,9 +210,10 @@ const NewUser = () => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 className={`block w-full rounded-md border ${passwordsMatch ? 'border-gray-300' : 'border-red-500'} shadow-sm`}
-                required
+                disabled={isChofer}
+                required={!isChofer}
               />
-              {!passwordsMatch && (
+              {!isChofer && !passwordsMatch && (
                 <p className="text-red-500 text-sm mt-1">Las contraseñas no coinciden</p>
               )}
             </div>
@@ -196,8 +230,8 @@ const NewUser = () => {
               </button>
               <button
                 type="submit"
-                disabled={!passwordsMatch || emailExists}
-                className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white ${!passwordsMatch || emailExists ? 'bg-gray-300' : 'bg-blue-600 hover:bg-blue-700'}`}
+                disabled={(!isChofer && !passwordsMatch) || emailExists}
+                className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white ${(!isChofer && !passwordsMatch) || emailExists ? 'bg-gray-300' : 'bg-blue-600 hover:bg-blue-700'}`}
               >
                 Registrar Usuario
               </button>
