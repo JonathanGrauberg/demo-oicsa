@@ -16,10 +16,10 @@ const menuGroups = [
   {
     title: '🚜 Vehículos y Obras',
     items: [
-      { label: 'Vehículos y Máquinas', path: '/vehicles', roles: ['superusuario'] },
-      { label: 'Registrar Vehículo', path: '/vehicleregistration', roles: ['superusuario'] },
-      { label: 'Obras', path: '/obras', roles: ['superusuario'] },
-      { label: 'Registrar Obras', path: '/newObra', roles: ['superusuario'] },
+      { label: 'Vehículos y Máquinas', path: '/vehicles', roles: ['superusuario', 'administrativo'] },
+      { label: 'Registrar Vehículo', path: '/vehicleregistration', roles: ['superusuario', 'administrativo'] },
+      { label: 'Obras', path: '/obras', roles: ['superusuario', 'administrativo'] },
+      { label: 'Registrar Obras', path: '/newObra', roles: ['superusuario', 'administrativo'] },
     ],
   },
   {
@@ -32,7 +32,7 @@ const menuGroups = [
   {
     title: '⛽ Vales',
     items: [
-      { label: 'Solicitud de Vale', path: '/newvoucher', roles: ['superusuario', 'encargado'] },
+      { label: 'Solicitud de Vale', path: '/newvoucher', roles: ['superusuario', 'encargado', 'administrativo'] },
       { label: 'Vales Pendientes', path: '/vales-pendientes', roles: ['superusuario', 'aprobador'] },
       { label: 'Vales Aprobados', path: '/vales-aprobados', roles: ['superusuario', 'administrativo'] },
       { label: 'Historial de Vales', path: '/vales', roles: ['superusuario', 'administrativo'] },
@@ -42,7 +42,7 @@ const menuGroups = [
     title: '📦 Stock e Insumos',
     items: [
       { label: 'Stock Actual', path: '/stock', roles: ['superusuario', 'administrativo'] },
-      { label: 'Crear Insumos', path: '/newStock', roles: ['superusuario'] },
+      { label: 'Crear Insumos', path: '/newStock', roles: ['superusuario', 'administrativo'] },
     ],
   },
 ];
