@@ -67,16 +67,17 @@ function TextArea({
 function VehiculoRow({
   item,
   onActualizarFila,
+  onDelete,
 }: {
   item: Vehiculo;
   onActualizarFila: (v: Vehiculo) => void;
+  onDelete: (id: number) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<Vehiculo>(item);
   const [saving, setSaving] = useState(false);
 
-  // Al expandir por primera vez, traemos detalle completo
   const abrir = async () => {
     if (expanded) return setExpanded(false);
     setExpanded(true);
@@ -119,6 +120,47 @@ function VehiculoRow({
     }
   };
 
+  const eliminar = async () => {
+    const ok = confirm(`¿Eliminar el vehículo ${item.marca} ${item.modelo} (${item.patente})?`);
+    if (!ok) return;
+
+    // intento simple
+    const res = await fetch('/api/vehiculo', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: item.id }),
+    });
+
+    if (res.ok) {
+      await onDelete(item.id);
+      return;
+    }
+
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 409 && err?.referencias > 0) {
+      const ok2 = confirm(
+        `Este vehículo está referenciado por ${err.referencias} vale(s).\n` +
+        `¿Querés DESVINCULAR esos vales (dejando la patente como texto) y eliminar el vehículo igualmente?`
+      );
+      if (!ok2) return;
+
+      const res2 = await fetch('/api/vehiculo', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, unlink: true }),
+      });
+
+      if (res2.ok) {
+        await onDelete(item.id);
+      } else {
+        const e2 = await res2.json().catch(() => ({}));
+        alert(e2?.error || 'No se pudo eliminar el vehículo');
+      }
+    } else {
+      alert(err?.error || 'No se pudo eliminar el vehículo');
+    }
+  };
+
   return (
     <>
       <tr className="border-t">
@@ -128,10 +170,9 @@ function VehiculoRow({
         <td className="px-4 py-2">
           {item.kilometraje != null ? item.kilometraje.toLocaleString('es-AR') : 'Sin datos'}
         </td>
-        <td className="px-4 py-2">
-          <button onClick={abrir} className="bg-blue-500 text-white px-2 py-1 rounded">
-            {expanded ? 'Cerrar' : 'Editar'}
-          </button>
+        <td className="px-4 py-2 space-x-2">
+          <button onClick={abrir} className="bg-blue-500 text-white px-2 py-1 rounded"> {expanded ? 'Cerrar' : 'Editar'} </button>
+          <button onClick={eliminar} className="bg-red-600 text-white px-2 py-1 rounded">Eliminar</button>
         </td>
       </tr>
 
@@ -142,50 +183,14 @@ function VehiculoRow({
               <div className="text-gray-500">Cargando…</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Select label="Tipo" value={form.tipo || ''} onChange={(e) => set('tipo', e.target.value)}>
-                  <option value="">Seleccionar…</option>
-                  <option>Camión</option>
-                  <option>Retroexcavadora</option>
-                  <option>Grúa</option>
-                  <option>Cargadora</option>
-                  <option>Auto</option>
-                  <option>Camioneta</option>
-                  <option>otro auto</option>
-                </Select>
-                <Select label="Marca" value={form.marca || ''} onChange={(e) => set('marca', e.target.value)}>
-                  <option value="">Seleccionar…</option>
-                  <option>Honda</option>
-                  <option>Fiat</option>
-                  <option>Mercedez</option>
-                  <option>BMW</option>
-                  <option>Audi</option>
-                  <option>VolksWagen</option>
-                  <option>otro</option>
-                </Select>
-                <Select label="Modelo" value={form.modelo || ''} onChange={(e) => set('modelo', e.target.value)}>
-                  <option value="">Seleccionar…</option>
-                  <option>Kangoo</option>
-                  <option>Gol</option>
-                  <option>Vento</option>
-                  <option>A4</option>
-                  <option>A3</option>
-                  <option>Berlingo</option>
-                  <option>otro</option>
-                </Select>
+                <Input label="Tipo" value={form.tipo || ''} onChange={(e) => set('tipo', e.target.value)} />
+                <Input label="Marca" value={form.marca || ''} onChange={(e) => set('marca', e.target.value)} />
+                <Input label="Modelo" value={form.modelo || ''} onChange={(e) => set('modelo', e.target.value)} />
+                
                 <Input label="Patente" value={form.patente || ''} onChange={(e) => set('patente', e.target.value)} />
 
-                <Input
-                  label="Año"
-                  type="number"
-                  value={form.ano as any || ''}
-                  onChange={(e) => set('ano', e.target.value)}
-                />
-                <Input
-                  label="Kilometraje"
-                  type="number"
-                  value={form.kilometraje ?? ''}
-                  onChange={(e) => set('kilometraje', Number(e.target.value))}
-                />
+                <Input label="Año" type="number" value={form.ano as any || ''} onChange={(e) => set('ano', e.target.value)} />
+                <Input label="Kilometraje" type="number" value={form.kilometraje ?? ''} onChange={(e) => set('kilometraje', Number(e.target.value))} />
                 <Input label="Chasis" value={form.chasis || ''} onChange={(e) => set('chasis', e.target.value)} />
                 <Input label="Motor" value={form.motor || ''} onChange={(e) => set('motor', e.target.value)} />
 
@@ -205,28 +210,12 @@ function VehiculoRow({
                 <Input label="Filtro Combustible Secundario" value={form.filtro_combustible_secundario || ''} onChange={(e) => set('filtro_combustible_secundario', e.target.value)} />
 
                 <div className="md:col-span-4">
-                  <TextArea
-                    label="Observaciones"
-                    rows={3}
-                    value={form.observaciones || ''}
-                    onChange={(e) => set('observaciones', e.target.value)}
-                  />
+                  <TextArea label="Observaciones" rows={3} value={form.observaciones || ''} onChange={(e) => set('observaciones', e.target.value)} />
                 </div>
 
                 <div className="md:col-span-4 flex gap-2 justify-end mt-2">
-                  <button
-                    onClick={() => setExpanded(false)}
-                    type="button"
-                    className="px-3 py-2 rounded bg-gray-300"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={guardar}
-                    disabled={saving}
-                    type="button"
-                    className="px-3 py-2 rounded bg-green-600 text-white disabled:opacity-50"
-                  >
+                  <button onClick={() => setExpanded(false)} type="button" className="px-3 py-2 rounded bg-gray-300">Cancelar</button>
+                  <button onClick={guardar} disabled={saving} type="button" className="px-3 py-2 rounded bg-green-600 text-white disabled:opacity-50">
                     {saving ? 'Guardando…' : 'Guardar cambios'}
                   </button>
                 </div>
@@ -253,6 +242,10 @@ export default function VehiculosPage() {
 
   const onActualizarFila = (v: Vehiculo) => {
     setVehiculos((prev) => prev.map((x) => (x.id === v.id ? { ...x, ...v } : x)));
+  };
+
+  const onDelete = async (id: number) => {
+    setVehiculos((prev) => prev.filter((x) => x.id !== id));
   };
 
   const vehiculosFiltrados = useMemo(() => {
@@ -289,7 +282,7 @@ export default function VehiculosPage() {
           <tbody>
             {vehiculosFiltrados.length ? (
               vehiculosFiltrados.map((item) => (
-                <VehiculoRow key={item.id} item={item} onActualizarFila={onActualizarFila} />
+                <VehiculoRow key={item.id} item={item} onActualizarFila={onActualizarFila} onDelete={onDelete} />
               ))
             ) : (
               <tr>

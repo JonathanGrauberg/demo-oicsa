@@ -143,3 +143,67 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Error al actualizar vehículo' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  const client = await pool.connect();
+  try {
+    const { id, unlink } = await req.json();
+    if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 });
+
+    // Traer patente
+    const { rows: vehRows } = await client.query('SELECT patente FROM vehiculo WHERE id = $1', [id]);
+    if (vehRows.length === 0) return NextResponse.json({ error: 'Vehículo no encontrado' }, { status: 404 });
+    const patente: string = vehRows[0].patente;
+
+    // Contar referencias en vales: por id numérico o por patente
+    const { rows: refRows } = await client.query(
+      `
+      SELECT COUNT(*)::int AS c
+      FROM vale v
+      WHERE
+        (v.vehiculo ~ '^[0-9]+$' AND CAST(v.vehiculo AS INTEGER) = $1)
+        OR (LOWER(v.vehiculo) = LOWER($2))
+      `,
+      [id, patente]
+    );
+    const refs = refRows[0]?.c ?? 0;
+
+    if (refs > 0 && !unlink) {
+      return NextResponse.json(
+        { error: 'Vehículo referenciado en vales', referencias: refs },
+        { status: 409 }
+      );
+    }
+
+    await client.query('BEGIN');
+
+    if (refs > 0 && unlink) {
+      // Desvincular: pasar todo a patente en texto
+      await client.query(
+        `
+        UPDATE vale
+        SET vehiculo = $2
+        WHERE
+          (vehiculo ~ '^[0-9]+$' AND CAST(vehiculo AS INTEGER) = $1)
+          OR (LOWER(vehiculo) = LOWER($2))
+        `,
+        [id, patente]
+      );
+    }
+
+    const del = await client.query('DELETE FROM vehiculo WHERE id = $1', [id]);
+    if (del.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ error: 'Vehículo no encontrado' }, { status: 404 });
+    }
+
+    await client.query('COMMIT');
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    try { await client.query('ROLLBACK'); } catch {}
+    console.error('Error al eliminar vehiculo:', e);
+    return NextResponse.json({ error: 'Error al eliminar vehículo' }, { status: 500 });
+  } finally {
+    client.release();
+  }
+}

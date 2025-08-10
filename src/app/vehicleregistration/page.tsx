@@ -184,9 +184,9 @@ const VehicleRegistration = () => {
   };
 
   // Opciones base (ajustá/extendé cuando quieras)
-  const opcionesTipo = ['Camión', 'Retroexcavadora', 'Grúa', 'Cargadora', 'Auto', 'Camioneta', 'Otro tipo'];
-  const opcionesMarca = ['Honda', 'Fiat', 'Mercedez', 'BMW', 'Audi', 'VolksWagen', 'Otra marca'];
-  const opcionesModelo = ['Kangoo', 'Gol', 'Vento', 'A4', 'A3', 'Berlingo', 'Otro modelo'];
+  const opcionesTipo = ['Camión', 'Retroexcavadora', 'Grúa', 'Cargadora', 'Auto', 'Camioneta'];
+  const opcionesMarca = ['Honda', 'Fiat', 'Mercedez', 'BMW', 'Audi', 'VolksWagen'];
+  const opcionesModelo = ['Kangoo', 'Gol', 'Vento', 'A4', 'A3', 'Berlingo'];
 
   return (
     <div>
