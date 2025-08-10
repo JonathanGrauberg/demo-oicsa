@@ -6,14 +6,13 @@ interface TokenPayload {
   nombre?: string;
 }
 
+const DASHBOARD_ITEM = {
+  label: 'Dashboard',
+  path: '/dashboard',
+  roles: ['superusuario', 'administrativo'] as const,
+};
+
 const menuGroups = [
-  {
-    title: '📊 Panel',
-    items: [
-      { label: 'Dashboard', path: '/dashboard', roles: ['superusuario', 'administrativo'] },
-      
-    ],
-  },
   {
     title: '🚜 Vehículos y Obras',
     items: [
@@ -53,19 +52,17 @@ const Sidebar = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    // 🔹 Consultar el rol directamente desde el backend
     const fetchUserRole = async () => {
       try {
         const res = await fetch('/api/auth/me');
         if (res.ok) {
           const data: TokenPayload = await res.json();
-          console.log("🎯 Rol desde /api/auth/me:", data.rol);
           setUserRole(data.rol?.trim().toLowerCase() || null);
         } else {
-          console.warn("⚠️ Error al obtener el rol del usuario");
+          setUserRole(null);
         }
-      } catch (error) {
-        console.error("🔥 Error en fetchUserRole:", error);
+      } catch {
+        setUserRole(null);
       }
     };
     fetchUserRole();
@@ -75,13 +72,26 @@ const Sidebar = () => {
     setOpenGroup(prev => (prev === title ? null : title));
   };
 
+  const canSee = (roles: readonly string[]) =>
+    userRole === 'superusuario' || (userRole && roles.map(r => r.toLowerCase()).includes(userRole));
+
   return (
     <div className="bg-gray-800 text-white w-64 min-h-screen p-4">
       <div className="space-y-2">
+        {/* Link directo a Dashboard (sin grupo "Panel") */}
+        {canSee(DASHBOARD_ITEM.roles as unknown as string[]) && (
+          <a
+            href={DASHBOARD_ITEM.path}
+            className="block p-2 text-sm hover:bg-gray-700 rounded"
+          >
+            {DASHBOARD_ITEM.label}
+          </a>
+        )}
+
+        {/* Resto de grupos */}
         {menuGroups.map((group) => {
-          const visibleItems = group.items.filter(item => 
-            userRole === 'superusuario' || 
-            (userRole && item.roles.map(r => r.toLowerCase()).includes(userRole))
+          const visibleItems = group.items.filter(item =>
+            canSee(item.roles as unknown as string[])
           );
 
           if (visibleItems.length === 0) return null;
