@@ -186,7 +186,7 @@ function VehiculoRow({
                 <Input label="Tipo" value={form.tipo || ''} onChange={(e) => set('tipo', e.target.value)} />
                 <Input label="Marca" value={form.marca || ''} onChange={(e) => set('marca', e.target.value)} />
                 <Input label="Modelo" value={form.modelo || ''} onChange={(e) => set('modelo', e.target.value)} />
-                
+
                 <Input label="Patente" value={form.patente || ''} onChange={(e) => set('patente', e.target.value)} />
 
                 <Input label="Año" type="number" value={form.ano as any || ''} onChange={(e) => set('ano', e.target.value)} />
@@ -249,12 +249,30 @@ export default function VehiculosPage() {
   };
 
   const vehiculosFiltrados = useMemo(() => {
-    const t = busqueda.trim().toLowerCase();
-    if (!t) return vehiculos;
-    return vehiculos.filter((v) =>
-      `${v.marca} ${v.modelo} ${v.patente}`.toLowerCase().includes(t)
-    );
-  }, [vehiculos, busqueda]);
+  const t = busqueda.trim().toLowerCase();
+  let lista = [...vehiculos];
+
+  // Ordenar por marca y luego por modelo
+  lista.sort((a, b) => {
+    const marcaA = a.marca?.toLowerCase() || '';
+    const marcaB = b.marca?.toLowerCase() || '';
+    if (marcaA < marcaB) return -1;
+    if (marcaA > marcaB) return 1;
+
+    const modeloA = a.modelo?.toLowerCase() || '';
+    const modeloB = b.modelo?.toLowerCase() || '';
+    if (modeloA < modeloB) return -1;
+    if (modeloA > modeloB) return 1;
+    return 0;
+  });
+
+  if (!t) return lista;
+
+  return lista.filter((v) =>
+    `${v.marca} ${v.modelo} ${v.patente}`.toLowerCase().includes(t)
+  );
+}, [vehiculos, busqueda]);
+
 
   return (
     <div className="p-6">
