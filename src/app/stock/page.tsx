@@ -9,14 +9,13 @@ export default function StockPage() {
   useEffect(() => {
     async function fetchStock() {
       try {
-        const res = await fetch('/api/stock');
+        const res = await fetch('/api/stock', { cache: 'no-store' });
         const data = await res.json();
         setStock(data);
       } catch (error) {
         console.error('Error al obtener el stock:', error);
       }
     }
-
     fetchStock();
   }, []);
 
@@ -43,6 +42,29 @@ export default function StockPage() {
     }
   };
 
+  const eliminarItem = async (id: number) => {
+    const ok = confirm('¿Seguro que querés eliminar este ítem de stock? Esta acción no se puede deshacer.');
+    if (!ok) return;
+
+    try {
+      const res = await fetch('/api/stock', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+
+      if (res.ok) {
+        setStock((prev) => prev.filter((i) => i.id !== id));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err?.error || '❌ No se pudo eliminar el ítem');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('❌ Error de conexión al eliminar');
+    }
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6">Stock de Combustibles y Lubricantes</h1>
@@ -61,7 +83,14 @@ export default function StockPage() {
           </thead>
           <tbody>
             {stock.length > 0 ? (
-              stock.map((item) => <EditableStockRow key={item.id} item={item} onSave={actualizarCantidad} />)
+              stock.map((item) => (
+                <EditableStockRow
+                  key={item.id}
+                  item={item}
+                  onSave={actualizarCantidad}
+                  onDelete={eliminarItem} // 👈 nuevo
+                />
+              ))
             ) : (
               <tr>
                 <td colSpan={6} className="text-center text-gray-500 py-4">
@@ -79,9 +108,11 @@ export default function StockPage() {
 function EditableStockRow({
   item,
   onSave,
+  onDelete,
 }: {
   item: StockItem;
   onSave: (id: number, nuevaCantidad: number) => void;
+  onDelete: (id: number) => void; // 👈 nuevo
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [nuevaCantidad, setNuevaCantidad] = useState(item.cantidad);
@@ -109,7 +140,7 @@ function EditableStockRow({
       </td>
       <td className="px-4 py-2">{item.unidad}</td>
       <td className="px-4 py-2">{new Date(item.creado_en).toLocaleDateString()}</td>
-      <td className="px-4 py-2">
+      <td className="px-4 py-2 space-x-2">
         {isEditing ? (
           <button
             onClick={guardar}
@@ -125,6 +156,14 @@ function EditableStockRow({
             Editar
           </button>
         )}
+
+        {/* 👇 Botón eliminar */}
+        <button
+          onClick={() => onDelete(item.id)}
+          className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+        >
+          Eliminar
+        </button>
       </td>
     </tr>
   );

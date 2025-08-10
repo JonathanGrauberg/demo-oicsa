@@ -67,3 +67,24 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Error al actualizar stock' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { id } = await req.json();
+    if (!id) {
+      return NextResponse.json({ error: 'Falta id' }, { status: 400 });
+    }
+
+    // Si querés soft delete, cambiá por UPDATE ... SET deleted_at = now()
+    const result = await pool.query('DELETE FROM stock WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rowCount === 0) {
+      return NextResponse.json({ error: 'Ítem no encontrado' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    console.error('Error al eliminar stock:', e);
+    return NextResponse.json({ error: 'Error al eliminar' }, { status: 500 });
+  }
+}
