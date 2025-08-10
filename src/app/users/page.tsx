@@ -13,19 +13,23 @@ const ROLES: Array<Usuario['rol']> = [
   'chofer',
 ];
 
-
 function RowUser({
   u,
   puedeEditar,
   onChangeRol,
+  onDelete,
+  meId,
 }: {
   u: Usuario;
   puedeEditar: boolean;
   onChangeRol: (id: number, nuevo: Usuario['rol']) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
+  meId?: number | null;
 }) {
   const [editando, setEditando] = useState(false);
   const [rol, setRol] = useState<Usuario['rol']>(u.rol);
   const [saving, setSaving] = useState(false);
+  const soyYo = meId === u.id;
 
   const guardar = async () => {
     try {
@@ -35,6 +39,16 @@ function RowUser({
     } finally {
       setSaving(false);
     }
+  };
+
+  const eliminar = async () => {
+    if (soyYo) {
+      alert('No podés eliminar tu propio usuario.');
+      return;
+    }
+    const ok = confirm(`¿Eliminar al usuario "${u.nombre} ${u.apellido}"? Esta acción no se puede deshacer.`);
+    if (!ok) return;
+    await onDelete(u.id);
   };
 
   return (
@@ -82,12 +96,22 @@ function RowUser({
               </button>
             </div>
           ) : (
-            <button onClick={() => setEditando(true)} className="bg-blue-500 text-white px-2 py-1 rounded">
-              Editar
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => setEditando(true)} className="bg-blue-500 text-white px-2 py-1 rounded">
+                Editar
+              </button>
+              <button
+                onClick={eliminar}
+                className="bg-red-600 text-white px-2 py-1 rounded"
+                title={soyYo ? 'No podés eliminarte' : 'Eliminar usuario'}
+                disabled={soyYo}
+              >
+                Eliminar
+              </button>
+            </div>
           )
         ) : (
-          <span className="text-gray-400">Sin permisos</span>
+          <span className="text-gray-400">Solo lectura</span>
         )}
       </td>
     </tr>
@@ -103,18 +127,12 @@ export default function UsersPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        // quién soy
         const meRes = await fetch('/api/auth/me', { cache: 'no-store' });
-        if (meRes.ok) {
-          setMe(await meRes.json());
-        } else {
-          setMe(null);
-        }
+        setMe(meRes.ok ? await meRes.json() : null);
 
-        // lista usuarios
         const uRes = await fetch('/api/usuario', { cache: 'no-store' });
         const data = await uRes.json();
-        setUsuarios(data.usuarios ?? []); // tu GET devuelve {usuarios:[...]}
+        setUsuarios(data.usuarios ?? []);
       } catch (e) {
         console.error(e);
       }
@@ -135,7 +153,6 @@ export default function UsersPage() {
 
   // PUT actualizar rol + actualización optimista
   const cambiarRol = async (id: number, nuevo: Usuario['rol']) => {
-    // optimista
     setUsuarios((prev) => prev.map((u) => (u.id === id ? { ...u, rol: nuevo } : u)));
     const res = await fetch('/api/usuario', {
       method: 'PUT',
@@ -144,9 +161,31 @@ export default function UsersPage() {
     });
     if (!res.ok) {
       // revertir si falla
-      setUsuarios((prev) => prev.map((u) => (u.id === id ? { ...u, rol: (prev.find(p => p.id===id)?.rol as Usuario['rol']) } : u)));
+      setUsuarios((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, rol: (prev.find((p) => p.id === id)?.rol as Usuario['rol']) } : u))
+      );
       const err = await res.json().catch(() => ({}));
       alert(err?.error || 'No se pudo actualizar el rol');
+    }
+  };
+
+  // DELETE usuario
+  const eliminarUsuario = async (id: number) => {
+    try {
+      const res = await fetch('/api/usuario', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err?.error || 'No se pudo eliminar el usuario');
+        return;
+      }
+      setUsuarios((prev) => prev.filter((u) => u.id !== id));
+    } catch (e) {
+      console.error(e);
+      alert('Error de conexión');
     }
   };
 
@@ -162,7 +201,7 @@ export default function UsersPage() {
           onChange={(e) => setQ(e.target.value)}
         />
         <div className="text-sm text-gray-600 self-center">
-          {puedeEditar ? 'Podés editar roles' : 'Solo lectura'}
+          {puedeEditar ? 'Podés editar y eliminar usuarios' : 'Solo lectura'}
         </div>
       </div>
 
@@ -180,7 +219,14 @@ export default function UsersPage() {
           <tbody>
             {usuariosFiltrados.length > 0 ? (
               usuariosFiltrados.map((u) => (
-                <RowUser key={u.id} u={u} puedeEditar={!!puedeEditar} onChangeRol={cambiarRol} />
+                <RowUser
+                  key={u.id}
+                  u={u}
+                  puedeEditar={!!puedeEditar}
+                  onChangeRol={cambiarRol}
+                  onDelete={eliminarUsuario}
+                  meId={me?.id ?? null}
+                />
               ))
             ) : (
               <tr>

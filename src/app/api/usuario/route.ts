@@ -106,3 +106,51 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Error al actualizar rol' }, { status: 500 });
   }
 }
+
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const token = req.cookies.get('token')?.value;
+    if (!token) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, SECRET_KEY);
+    } catch {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 403 });
+    }
+
+    if (decoded.rol !== 'superusuario') {
+      return NextResponse.json({ error: 'Permisos insuficientes' }, { status: 403 });
+    }
+
+    const { id } = await req.json();
+    if (!id) {
+      return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
+    }
+
+    // No permitir eliminarse a sí mismo
+    if (decoded.id === id) {
+      return NextResponse.json({ error: 'No podés eliminar tu propio usuario' }, { status: 400 });
+    }
+
+    // (Opcional) Evitar quedarte sin superusuarios:
+    // const { rows } = await pool.query(`SELECT COUNT(*)::int AS c FROM usuario WHERE rol='superusuario'`);
+    // if (rows[0].c <= 1) {
+    //   return NextResponse.json({ error: 'Debe quedar al menos un superusuario' }, { status: 400 });
+    // }
+
+    const result = await pool.query(`DELETE FROM usuario WHERE id = $1`, [id]);
+
+    if (result.rowCount === 0) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error al eliminar usuario:', error);
+    return NextResponse.json({ error: 'Error al eliminar usuario' }, { status: 500 });
+  }
+}
