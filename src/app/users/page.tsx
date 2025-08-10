@@ -10,6 +10,7 @@ const ROLES: Array<Usuario['rol']> = [
   'administrativo',
   'encargado',
   'aprobador',
+  'chofer',
 ];
 
 
