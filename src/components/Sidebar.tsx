@@ -43,7 +43,7 @@ const menuGroups = [
     title: '📦 Stock e Insumos',
     items: [
       { label: 'Stock Actual', path: '/stock', roles: ['superusuario', 'administrativo'] },
-      { label: 'Crear Insumos de Obrador', path: '/newStock', roles: ['superusuario'] },
+      { label: 'Crear Insumos', path: '/newStock', roles: ['superusuario'] },
     ],
   },
 ];

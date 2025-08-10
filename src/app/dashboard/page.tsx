@@ -10,40 +10,60 @@ export default function Dashboard() {
     vehiculos: 0,
     valesPendientes: 0,
     valesAprobados: 0,
-    obras: 0, // ✅ nuevo contador
+    obras: 0,
   });
 
   useEffect(() => {
     const fetchStats = async () => {
-      const usuarios = await fetch('/api/usuario').then(res => res.json());
-      const vehiculos = await fetch('/api/vehiculo').then(res => res.json());
-      const valesPendientes = await fetch('/api/vale?aprobado=false').then(res => res.json());
-      const valesAprobados = await fetch('/api/vale/mostrarAprobados').then(res => res.json());
-      const obras = await fetch('/api/obra').then(res => res.json()); // ✅ consulta nueva
+      try {
+        const [uRes, vRes, vpRes, vaRes, oRes] = await Promise.all([
+          fetch('/api/usuario', { cache: 'no-store' }),
+          fetch('/api/vehiculo', { cache: 'no-store' }),
+          fetch('/api/vale?aprobado=false', { cache: 'no-store' }),
+          fetch('/api/vale/mostrarAprobados', { cache: 'no-store' }),
+          fetch('/api/obra', { cache: 'no-store' }),
+        ]);
 
-      setStats({
-        usuarios: usuarios.length,
-        vehiculos: vehiculos.length,
-        valesPendientes: valesPendientes.length,
-        valesAprobados: valesAprobados.length,
-        obras: obras.length, // ✅ actualización de estado
-      });
+        const [uJson, vJson, vpJson, vaJson, oJson] = await Promise.all([
+          uRes.json(),
+          vRes.json(),
+          vpRes.json(),
+          vaRes.json(),
+          oRes.json(),
+        ]);
+
+        const usuariosCount = Array.isArray(uJson)
+          ? uJson.length
+          : Array.isArray(uJson?.usuarios)
+          ? uJson.usuarios.length
+          : 0;
+
+        setStats({
+          usuarios: usuariosCount,
+          vehiculos: Array.isArray(vJson) ? vJson.length : 0,
+          valesPendientes: Array.isArray(vpJson) ? vpJson.length : 0,
+          valesAprobados: Array.isArray(vaJson) ? vaJson.length : 0,
+          obras: Array.isArray(oJson) ? oJson.length : 0,
+        });
+      } catch (e) {
+        console.error('Error cargando estadísticas', e);
+        // opcional: podrías setear 0s o mantener anteriores
+      }
     };
     fetchStats();
   }, []);
 
   return (
     <main className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-      <Card title="Usuarios" count={stats.usuarios} href="/users" color="bg-blue-100" />
-      <Card title="Vehículos" count={stats.vehiculos} href="/vehicles" color="bg-green-100" />
-      <Card title="Vales Pendientes" count={stats.valesPendientes} href="/vales-pendientes" color="bg-yellow-100" />
-      <Card title="Vales Aprobados" count={stats.valesAprobados} href="/vales-aprobados" color="bg-purple-100" />
-      <Card title="Obras registradas" count={stats.obras} href="/obras" color="bg-red-100" /> {/* ✅ nueva tarjeta */}
+      <Card title="Usuarios" count={stats.usuarios} href="/users" color="bg-gray-200" />
+      <Card title="Vehículos" count={stats.vehiculos} href="/vehicles" color="bg-gray-100" />
+      <Card title="Vales Pendientes" count={stats.valesPendientes} href="/vales-pendientes" color="bg-gray-200" />
+      <Card title="Vales Aprobados" count={stats.valesAprobados} href="/vales-aprobados" color="bg-gray-100" />
+      <Card title="Obras registradas" count={stats.obras} href="/obras" color="bg-gray-200" />
     </main>
   );
 }
 
-// ✅ Componente de tarjeta
 function Card({ title, count, href, color }: { title: string; count: number; href: string; color: string }) {
   return (
     <Link href={href} className={`p-4 rounded-xl shadow-md hover:shadow-lg transition ${color}`}>
