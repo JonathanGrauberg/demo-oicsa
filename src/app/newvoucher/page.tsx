@@ -4,10 +4,17 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from 'react';
 
 interface UserInfo {
-  id: number;           // ✅ añadimos id
+  id: number;
   nombre: string;
   apellido: string;
   rol: string;
+}
+
+interface Chofer {
+  id: number;
+  nombre: string;
+  apellido: string;
+  rol: 'chofer';
 }
 
 const CrearVale = () => {
@@ -23,10 +30,13 @@ const CrearVale = () => {
     origen: 'obrador',
   });
 
-  const [vehiculos, setVehiculos] = useState([] as any[]);
-  const [obras, setObras] = useState([] as any[]);
-  const [insumos, setInsumos] = useState([] as any[]);
+  const [vehiculos, setVehiculos] = useState<any[]>([]);
+  const [obras, setObras] = useState<any[]>([]);
+  const [insumos, setInsumos] = useState<any[]>([]);
   const [user, setUser] = useState<UserInfo | null>(null);
+
+  const [choferes, setChoferes] = useState<Chofer[]>([]);
+  const [choferId, setChoferId] = useState<string>('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,17 +54,29 @@ const CrearVale = () => {
         const data: UserInfo = await res.json();
         setUser(data);
 
-        if (data.rol === 'encargado') {
-          setFormData(prev => ({
-            ...prev,
-            encargado: `${data.nombre} ${data.apellido}`,
-          }));
-        }
+        // 🔹 Autocompletar encargado siempre
+        setFormData(prev => ({
+          ...prev,
+          encargado: `${data.nombre} ${data.apellido}`,
+        }));
+      }
+    };
+
+    const fetchChoferes = async () => {
+      try {
+        const r = await fetch('/api/usuario?rol=chofer', { cache: 'no-store' });
+        if (!r.ok) throw new Error('No se pudieron cargar choferes');
+        const json = await r.json();
+        setChoferes(Array.isArray(json.usuarios) ? json.usuarios : json);
+      } catch (e) {
+        console.error(e);
+        setChoferes([]);
       }
     };
 
     fetchData();
     fetchUser();
+    fetchChoferes();
 
     const today = new Date().toISOString().split('T')[0];
     setFormData(prev => ({ ...prev, fecha: today }));
@@ -68,15 +90,16 @@ const CrearVale = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!user) {
       alert('Usuario no identificado');
       return;
     }
 
-    const vale = { 
+    const solicitado_por = choferId ? Number(choferId) : user.id;
+
+    const vale = {
       ...formData,
-      solicitado_por: user.id   // ✅ agregamos id del usuario
+      solicitado_por,
     };
 
     const res = await fetch('/api/vale', {
@@ -93,19 +116,22 @@ const CrearVale = () => {
         vehiculo: '',
         obra: '',
         destino: '',
-        encargado: user.rol === 'encargado' ? `${user.nombre} ${user.apellido}` : '',
+        encargado: `${user.nombre} ${user.apellido}`, // 🔹 Mantener siempre autocompletado
         fecha: new Date().toISOString().split('T')[0],
         kilometraje: '',
         origen: 'obrador',
       });
+      setChoferId('');
     } else {
-      alert('Error al generar vale');
+      const err = await res.json().catch(() => ({}));
+      alert(err?.error || 'Error al generar vale');
     }
   };
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Pedido de Nuevo Vale</h1>
+
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <select name="origen" value={formData.origen} onChange={handleChange} className="input-style" required>
           <option value="obrador">Obrador</option>
@@ -150,21 +176,28 @@ const CrearVale = () => {
           <option value="">Seleccione una obra</option>
           {obras.map((obra: any) => (
             <option key={obra.id} value={obra.nombre}>
-              {obra.nombre} - {obra.ubicacion || ''}
+              {obra.nombre} {obra.ubicacion ? `- ${obra.ubicacion}` : ''}
             </option>
           ))}
         </select>
 
-        <input name="destino" value={formData.destino} onChange={handleChange} placeholder="Destino" className="input-style" required />
+        <input
+          name="destino"
+          value={formData.destino}
+          onChange={handleChange}
+          placeholder="Destino"
+          className="input-style"
+          required
+        />
 
+        {/* 🔹 Encargado autocompletado y siempre readonly */}
         <input
           name="encargado"
           value={formData.encargado}
-          onChange={handleChange}
+          readOnly
           placeholder="Encargado"
           className="input-style"
           required
-          readOnly={user?.rol === 'encargado'}
         />
 
         <input
@@ -179,22 +212,43 @@ const CrearVale = () => {
 
         <input type="date" name="fecha" value={formData.fecha} readOnly className="input-style" required />
 
+        {/* 👇 Select de Chofer sin email */}
+        <div className="md:col-span-3">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Chofer (opcional)</label>
+          <select
+            value={choferId}
+            onChange={(e) => setChoferId(e.target.value)}
+            className="input-style"
+          >
+            <option value="">— Seleccionar chofer —</option>
+            {choferes.map((c) => (
+              <option key={c.id} value={String(c.id)}>
+                {c.apellido}, {c.nombre}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            Si no seleccionás chofer, se usará tu propio usuario como solicitante.
+          </p>
+        </div>
+
         <div className="col-span-full flex justify-end gap-2 mt-4">
           <button
             type="reset"
-            onClick={() =>
+            onClick={() => {
               setFormData({
                 combustible_lubricante: '',
                 litros: '',
                 vehiculo: '',
                 obra: '',
                 destino: '',
-                encargado: user?.rol === 'encargado' ? `${user.nombre} ${user.apellido}` : '',
+                encargado: user ? `${user.nombre} ${user.apellido}` : '',
                 fecha: new Date().toISOString().split('T')[0],
                 kilometraje: '',
                 origen: 'obrador',
-              })
-            }
+              });
+              setChoferId('');
+            }}
             className="px-4 py-2 bg-gray-300 text-black rounded"
           >
             Cancelar

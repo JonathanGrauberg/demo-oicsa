@@ -1,23 +1,26 @@
+// NUEVO GET seguro y compatible con UI
+// src/app/api/vale/route.ts  
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 
-// NUEVO GET seguro y compatible con UI
 export async function GET(req: NextRequest) {
   try {
-    const aprobado = req.nextUrl.searchParams.get('aprobado'); // 'true' | 'false' | null
+    const url = req.nextUrl;
+    const aprobado = url.searchParams.get('aprobado');      // 'true' | 'false' | null
+    const obra     = url.searchParams.get('obra');          // string | null
+    const origen   = url.searchParams.get('origen');        // 'obrador' | 'estacion' | '' | null
+    const desde    = url.searchParams.get('desde');         // 'YYYY-MM-DD' | null
+    const hasta    = url.searchParams.get('hasta');         // 'YYYY-MM-DD' | null
 
-    // Resolvemos vehículo de forma segura:
-    // - Si v.vehiculo es numérico -> lo tomamos como id
-    // - Si no -> buscamos por patente (case-insensitive)
     let query = `
       SELECT
         v.id,
         v.combustible_lubricante,
         v.litros,
-        v.vehiculo,               -- lo devolvemos igual por compatibilidad
+        v.vehiculo,
         v.obra,
         v.destino,
-        v.encargado,              -- si tu tabla usa 'chofer', cámbialo aquí o haz alias
+        v.encargado,
         v.solicitado_por,
         v.fecha,
         v.aprobado,
@@ -28,8 +31,6 @@ export async function GET(req: NextRequest) {
         u.apellido AS solicitado_apellido,
         veh.marca,
         veh.modelo,
-        -- si no hay match por id/patente dejamos patente null;
-        -- si quisieras, podrías hacer un COALESCE con v.vehiculo
         veh.patente
       FROM vale v
       LEFT JOIN usuario u ON u.id = v.solicitado_por
@@ -38,8 +39,7 @@ export async function GET(req: NextRequest) {
         FROM vehiculo vv
         WHERE (
           (v.vehiculo ~ '^[0-9]+$' AND vv.id = CAST(v.vehiculo AS INTEGER))
-          OR
-          (LOWER(vv.patente) = LOWER(v.vehiculo))
+          OR (LOWER(vv.patente) = LOWER(v.vehiculo))
         )
         ORDER BY vv.id
         LIMIT 1
@@ -49,13 +49,44 @@ export async function GET(req: NextRequest) {
 
     const params: any[] = [];
     let i = 1;
+    const choferId = url.searchParams.get('chofer_id'); // nuevo
 
     if (aprobado !== null) {
       query += ` AND v.aprobado = $${i++}`;
       params.push(aprobado === 'true');
     }
+    if (obra) {
+      query += ` AND v.obra ILIKE $${i++}`;
+      params.push(`%${obra}%`);
+    }
+    if (origen) {
+      query += ` AND v.origen = $${i++}`;
+      params.push(origen);
+    }
 
-    query += ` ORDER BY v.id DESC`;
+    // 🔸 Rango de fechas (inclusivo). Si tu columna v.fecha es TIMESTAMP, usá el bloque A.
+    // A) v.fecha es TIMESTAMP -> 'hasta' exclusivo + 1 día (cubre todo el día)
+    if (desde) {
+      query += ` AND v.fecha >= $${i++}::date`;
+      params.push(desde);
+    }
+    if (hasta) {
+      query += ` AND v.fecha < ($${i++}::date + INTERVAL '1 day')`;
+      params.push(hasta);
+    }
+
+    if (choferId) {
+       query += ` AND v.solicitado_por = $${i++}`;
+        params.push(Number(choferId));
+}
+
+    // // B) Si v.fecha es DATE puro, reemplazá las 2 líneas de 'hasta' por esta:
+    // if (hasta) {
+    //   query += ` AND v.fecha <= $${i++}::date`;
+    //   params.push(hasta);
+    // }
+
+    query += ` ORDER BY v.fecha DESC, v.id DESC`;
 
     const result = await pool.query(query, params);
     return NextResponse.json(result.rows, { status: 200 });
@@ -64,6 +95,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Error al obtener vales' }, { status: 500 });
   }
 }
+
 
 
 

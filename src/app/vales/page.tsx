@@ -8,7 +8,8 @@ import * as XLSX from 'xlsx';
 export default function ValesPage() {
   const [vales, setVales] = useState<any[]>([]);
   const [filtroObra, setFiltroObra] = useState('');
-  const [filtroFecha, setFiltroFecha] = useState('');
+  const [filtroDesde, setFiltroDesde] = useState(''); // nuevo
+  const [filtroHasta, setFiltroHasta] = useState(''); // nuevo
   const [filtroOrigen, setFiltroOrigen] = useState('');
 
   // ✅ Usar baseUrl correctamente
@@ -18,12 +19,12 @@ export default function ValesPage() {
   const fetchVales = async () => {
     const params = new URLSearchParams();
     if (filtroObra) params.append('obra', filtroObra);
-    if (filtroFecha) params.append('fecha', filtroFecha);
+    if (filtroDesde) params.append('desde', filtroDesde);
+    if (filtroHasta) params.append('hasta', filtroHasta);
     if (filtroOrigen) params.append('origen', filtroOrigen);
 
     try {
       const query = params.toString();
-      // ✅ Ahora usamos baseUrl
       const res = await fetch(`${baseUrl}/api/vale${query ? `?${query}` : ''}`);
       if (!res.ok) throw new Error('Error al obtener vales');
 
@@ -37,6 +38,7 @@ export default function ValesPage() {
 
   useEffect(() => {
     fetchVales();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const generarExcel = () => {
@@ -46,7 +48,7 @@ export default function ValesPage() {
       Origen: v.origen,
       Insumo: v.combustible_lubricante,
       Litros: v.litros,
-      Vehículo: `${v.marca} ${v.modelo} (${v.vehiculo})`,
+      Vehículo: `${v.marca} ${v.modelo} (${v.patente ?? v.vehiculo ?? ''})`,
       Kilometraje: v.kilometraje,
       Obra: v.obra,
       Encargado: v.encargado,
@@ -71,7 +73,7 @@ export default function ValesPage() {
       doc.text(`Origen: ${vale.origen}`, 20, y + 10);
       doc.text(`Insumo: ${vale.combustible_lubricante}`, 20, y + 15);
       doc.text(`Litros: ${vale.litros}`, 20, y + 20);
-      doc.text(`Vehículo: ${vale.marca} ${vale.modelo} (${vale.vehiculo})`, 20, y + 25);
+      doc.text(`Vehículo: ${vale.marca} ${vale.modelo} (${vale.patente ?? vale.vehiculo ?? ''})`, 20, y + 25);
       doc.text(`Kilometraje: ${vale.kilometraje}`, 20, y + 30);
       doc.text(`Obra: ${vale.obra}`, 20, y + 35);
       doc.text(`Encargado: ${vale.encargado}`, 20, y + 40);
@@ -83,6 +85,13 @@ export default function ValesPage() {
       }
     });
     doc.save('todos_los_vales.pdf');
+  };
+
+  const limpiarFiltros = () => {
+    setFiltroObra('');
+    setFiltroDesde('');
+    setFiltroHasta('');
+    setFiltroOrigen('');
   };
 
   return (
@@ -97,12 +106,31 @@ export default function ValesPage() {
           value={filtroObra}
           onChange={(e) => setFiltroObra(e.target.value)}
         />
-        <input
-          className="border rounded p-2"
-          type="date"
-          value={filtroFecha}
-          onChange={(e) => setFiltroFecha(e.target.value)}
-        />
+
+        {/* Desde / Hasta */}
+        <div className="flex gap-2">
+          <div className="flex flex-col">
+            <label className="text-xs text-gray-600">Desde</label>
+            <input
+              className="border rounded p-2"
+              type="date"
+              value={filtroDesde}
+              onChange={(e) => setFiltroDesde(e.target.value)}
+              max={filtroHasta || undefined}
+            />
+          </div>
+          <div className="flex flex-col">
+            <label className="text-xs text-gray-600">Hasta</label>
+            <input
+              className="border rounded p-2"
+              type="date"
+              value={filtroHasta}
+              onChange={(e) => setFiltroHasta(e.target.value)}
+              min={filtroDesde || undefined}
+            />
+          </div>
+        </div>
+
         <select
           className="border rounded p-2"
           value={filtroOrigen}
@@ -112,12 +140,21 @@ export default function ValesPage() {
           <option value="obrador">Obrador</option>
           <option value="estacion">Estación de servicio</option>
         </select>
+
         <button
           onClick={fetchVales}
           className="bg-blue-600 text-white px-4 py-2 rounded"
         >
           Buscar
         </button>
+
+        <button
+          onClick={() => { limpiarFiltros(); fetchVales(); }}
+          className="bg-gray-200 text-gray-800 px-4 py-2 rounded"
+        >
+          Limpiar
+        </button>
+
         <div className="flex gap-2">
           <button
             onClick={generarExcel}
@@ -159,11 +196,9 @@ export default function ValesPage() {
                 <td className="border border-gray-300 p-2">{vale.origen}</td>
                 <td className="border border-gray-300 p-2">{vale.combustible_lubricante}</td>
                 <td className="border border-gray-300 p-2">{vale.litros}</td>
-
-                <td className="p-2">                  
-                {vale.marca} {vale.modelo} ({vale.patente})
+                <td className="p-2">
+                  {vale.marca} {vale.modelo} ({vale.patente ?? vale.vehiculo ?? ''})
                 </td>
-
                 <td className="border border-gray-300 p-2">{vale.kilometraje}</td>
                 <td className="border border-gray-300 p-2">{vale.obra}</td>
                 <td className="border border-gray-300 p-2">{vale.encargado}</td>
