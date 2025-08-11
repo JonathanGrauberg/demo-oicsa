@@ -175,7 +175,9 @@ export default function ObrasPage() {
       try {
         const res = await fetch(`${baseUrl}/api/obra`, { cache: 'no-store' });
         const data = await res.json();
+        data.sort((a: Obra, b: Obra) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
         setObras(data);
+
       } catch (e) {
         console.error(e);
         setObras([]);

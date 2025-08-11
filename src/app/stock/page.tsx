@@ -6,12 +6,17 @@ import { StockItem } from '@/lib/types/stock';
 export default function StockPage() {
   const [stock, setStock] = useState<StockItem[]>([]);
 
+  const ordenarPorNombre = (items: StockItem[]) =>
+    [...items].sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+    );
+
   useEffect(() => {
     async function fetchStock() {
       try {
         const res = await fetch('/api/stock', { cache: 'no-store' });
-        const data = await res.json();
-        setStock(data);
+        const data: StockItem[] = await res.json();
+        setStock(ordenarPorNombre(data));
       } catch (error) {
         console.error('Error al obtener el stock:', error);
       }
@@ -30,8 +35,16 @@ export default function StockPage() {
       if (res.ok) {
         const actualizado = await res.json();
         setStock((prev) =>
-          prev.map((item) =>
-            item.id === id ? { ...item, cantidad: actualizado.cantidad, creado_en: actualizado.creado_en } : item
+          ordenarPorNombre(
+            prev.map((item) =>
+              item.id === id
+                ? {
+                    ...item,
+                    cantidad: actualizado.cantidad,
+                    creado_en: actualizado.creado_en,
+                  }
+                : item
+            )
           )
         );
       } else {
@@ -43,7 +56,9 @@ export default function StockPage() {
   };
 
   const eliminarItem = async (id: number) => {
-    const ok = confirm('¿Seguro que querés eliminar este ítem de stock? Esta acción no se puede deshacer.');
+    const ok = confirm(
+      '¿Seguro que querés eliminar este ítem de stock? Esta acción no se puede deshacer.'
+    );
     if (!ok) return;
 
     try {
@@ -54,7 +69,7 @@ export default function StockPage() {
       });
 
       if (res.ok) {
-        setStock((prev) => prev.filter((i) => i.id !== id));
+        setStock((prev) => ordenarPorNombre(prev.filter((i) => i.id !== id)));
       } else {
         const err = await res.json().catch(() => ({}));
         alert(err?.error || '❌ No se pudo eliminar el ítem');
@@ -67,7 +82,9 @@ export default function StockPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Stock de Combustibles y Lubricantes</h1>
+      <h1 className="text-3xl font-bold mb-6">
+        Stock de Combustibles y Lubricantes
+      </h1>
 
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white border border-gray-300 rounded-md">
@@ -88,12 +105,15 @@ export default function StockPage() {
                   key={item.id}
                   item={item}
                   onSave={actualizarCantidad}
-                  onDelete={eliminarItem} // 👈 nuevo
+                  onDelete={eliminarItem}
                 />
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="text-center text-gray-500 py-4">
+                <td
+                  colSpan={6}
+                  className="text-center text-gray-500 py-4"
+                >
                   No hay stock registrado.
                 </td>
               </tr>
@@ -112,7 +132,7 @@ function EditableStockRow({
 }: {
   item: StockItem;
   onSave: (id: number, nuevaCantidad: number) => void;
-  onDelete: (id: number) => void; // 👈 nuevo
+  onDelete: (id: number) => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [nuevaCantidad, setNuevaCantidad] = useState(item.cantidad);
@@ -131,7 +151,9 @@ function EditableStockRow({
           <input
             type="number"
             value={nuevaCantidad}
-            onChange={(e) => setNuevaCantidad(parseFloat(e.target.value))}
+            onChange={(e) =>
+              setNuevaCantidad(parseFloat(e.target.value))
+            }
             className="border p-1 w-20"
           />
         ) : (
@@ -139,7 +161,9 @@ function EditableStockRow({
         )}
       </td>
       <td className="px-4 py-2">{item.unidad}</td>
-      <td className="px-4 py-2">{new Date(item.creado_en).toLocaleDateString()}</td>
+      <td className="px-4 py-2">
+        {new Date(item.creado_en).toLocaleDateString()}
+      </td>
       <td className="px-4 py-2 space-x-2">
         {isEditing ? (
           <button
@@ -157,7 +181,6 @@ function EditableStockRow({
           </button>
         )}
 
-        {/* 👇 Botón eliminar */}
         <button
           onClick={() => onDelete(item.id)}
           className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
