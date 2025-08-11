@@ -100,11 +100,10 @@ export async function GET(req: NextRequest) {
 
 
 
-// ✅ POST para registrar nuevo vale
+/** ✅ POST: crea vale, pero si origen = 'obrador' valida stock ANTES de insertar */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log("📥 Datos recibidos para crear vale:", body); // 🟢 DEBUG
 
     const {
       combustible_lubricante,
@@ -116,13 +115,13 @@ export async function POST(req: NextRequest) {
       solicitado_por,
       fecha,
       kilometraje,
-      origen
-    } = body;
+      origen,
+    } = body ?? {};
 
-    // Validaciones
+    // Validaciones básicas
     if (
       !combustible_lubricante ||
-      !litros ||
+      litros === undefined ||
       !vehiculo ||
       !obra ||
       !destino ||
@@ -131,27 +130,64 @@ export async function POST(req: NextRequest) {
       !fecha ||
       !origen
     ) {
-      console.warn("⚠️ Campos faltantes:", body);
-      return NextResponse.json(
-        { error: 'Faltan campos obligatorios' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
-    // Insertar en la DB
+    // Normalizo valores
+    const origenNorm = String(origen).toLowerCase();
+    const litrosNum = Number(litros);
+
+    if (!Number.isFinite(litrosNum) || litrosNum <= 0) {
+      return NextResponse.json({ error: 'Litros inválidos' }, { status: 400 });
+    }
+
+    // ✅ Validación previa de stock SOLO si es obrador
+    if (origenNorm === 'obrador') {
+      const stockRes = await pool.query(
+        `SELECT cantidad FROM stock WHERE LOWER(nombre) = LOWER($1) LIMIT 1`,
+        [combustible_lubricante]
+      );
+
+      if (stockRes.rows.length === 0) {
+        return NextResponse.json(
+          { error: 'Insumo no existe en el stock del obrador' },
+          { status: 400 }
+        );
+      }
+
+      const disponible = Number(stockRes.rows[0].cantidad ?? 0);
+      if (!Number.isFinite(disponible) || disponible < litrosNum) {
+        return NextResponse.json(
+          { error: `Stock insuficiente en obrador. Disponible: ${disponible}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 👇 Insertar (sin descontar stock; eso ocurre al APROBAR)
     const result = await pool.query(
-      `INSERT INTO vale 
-      (combustible_lubricante, litros, vehiculo, obra, destino, encargado, solicitado_por, fecha, kilometraje, origen, aprobado) 
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,false)
-      RETURNING *`,
-      [combustible_lubricante, litros, vehiculo, obra, destino, encargado, solicitado_por, fecha, kilometraje, origen]
+      `INSERT INTO vale
+        (combustible_lubricante, litros, vehiculo, obra, destino, encargado,
+         solicitado_por, fecha, kilometraje, origen, aprobado)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,false)
+       RETURNING *`,
+      [
+        combustible_lubricante,
+        litrosNum,
+        vehiculo,
+        obra,
+        destino,
+        encargado,
+        solicitado_por,
+        fecha,
+        kilometraje ?? null,
+        origenNorm,
+      ]
     );
 
-    console.log("✅ Vale creado correctamente:", result.rows[0]);
     return NextResponse.json(result.rows[0], { status: 201 });
-
   } catch (error) {
-    console.error("🔥 Error al crear vale:", error);
+    console.error('🔥 Error al crear vale:', error);
     return NextResponse.json({ error: 'Error en el servidor' }, { status: 500 });
   }
 }

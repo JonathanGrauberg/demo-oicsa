@@ -17,6 +17,15 @@ interface Chofer {
   rol: 'chofer';
 }
 
+type StockItem = {
+  id: number;
+  nombre: string;
+  tipo: string;
+  cantidad: number;
+  unidad: string;
+  creado_en: string;
+};
+
 const CrearVale = () => {
   const [formData, setFormData] = useState({
     combustible_lubricante: '',
@@ -32,29 +41,31 @@ const CrearVale = () => {
 
   const [vehiculos, setVehiculos] = useState<any[]>([]);
   const [obras, setObras] = useState<any[]>([]);
-  const [insumos, setInsumos] = useState<any[]>([]);
+  const [insumos, setInsumos] = useState<StockItem[]>([]);
   const [user, setUser] = useState<UserInfo | null>(null);
 
   const [choferes, setChoferes] = useState<Chofer[]>([]);
   const [choferId, setChoferId] = useState<string>('');
 
+  // 👀 stock disponible del insumo seleccionado (solo informativo)
+  const [stockDisponible, setStockDisponible] = useState<number | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
-      const vehiculos = await fetch('/api/vehiculo').then(r => r.json());
-      const obras = await fetch('/api/obra').then(r => r.json());
-      const stock = await fetch('/api/stock').then(r => r.json());
+      const vehiculos = await fetch('/api/vehiculo', { cache: 'no-store' }).then(r => r.json());
+      const obras = await fetch('/api/obra', { cache: 'no-store' }).then(r => r.json());
+      const stock = await fetch('/api/stock', { cache: 'no-store' }).then(r => r.json());
       setVehiculos(vehiculos);
       setObras(obras);
       setInsumos(stock);
     };
 
     const fetchUser = async () => {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch('/api/auth/me', { cache: 'no-store' });
       if (res.ok) {
         const data: UserInfo = await res.json();
         setUser(data);
-
-        // 🔹 Autocompletar encargado siempre
+        // Autocompletar encargado SIEMPRE
         setFormData(prev => ({
           ...prev,
           encargado: `${data.nombre} ${data.apellido}`,
@@ -82,6 +93,18 @@ const CrearVale = () => {
     setFormData(prev => ({ ...prev, fecha: today }));
   }, []);
 
+  // Actualiza el “stockDisponible” cuando cambia el insumo seleccionado o el listado
+  useEffect(() => {
+    if (!formData.combustible_lubricante) {
+      setStockDisponible(null);
+      return;
+    }
+    const sel = insumos.find(
+      s => s.nombre.toLowerCase() === formData.combustible_lubricante.toLowerCase()
+    );
+    setStockDisponible(sel ? Number(sel.cantidad) : null);
+  }, [formData.combustible_lubricante, insumos]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -94,6 +117,33 @@ const CrearVale = () => {
       alert('Usuario no identificado');
       return;
     }
+
+    // ✅ Validación previa si el origen es OBRADOR
+    if (formData.origen === 'obrador') {
+      const litrosNum = Number(formData.litros);
+      if (!litrosNum || litrosNum <= 0) {
+        alert('Ingresá una cantidad de litros válida.');
+        return;
+      }
+
+      const insumoSel = insumos.find(
+        s => s.nombre.toLowerCase() === String(formData.combustible_lubricante).toLowerCase()
+      );
+
+      if (!insumoSel) {
+        alert('Insumo no encontrado en el stock del obrador.');
+        return;
+      }
+
+      const disponible = Number(insumoSel.cantidad);
+      if (disponible < litrosNum) {
+        alert(
+          `Stock insuficiente en obrador.\nDisponibles: ${disponible}\nSolicitados: ${litrosNum}`
+        );
+        return;
+      }
+    }
+    // 🔹 Si es “estación”, no validamos stock.
 
     const solicitado_por = choferId ? Number(choferId) : user.id;
 
@@ -116,12 +166,13 @@ const CrearVale = () => {
         vehiculo: '',
         obra: '',
         destino: '',
-        encargado: `${user.nombre} ${user.apellido}`, // 🔹 Mantener siempre autocompletado
+        encargado: `${user.nombre} ${user.apellido}`, // mantener autocompletado
         fecha: new Date().toISOString().split('T')[0],
         kilometraje: '',
         origen: 'obrador',
       });
       setChoferId('');
+      setStockDisponible(null);
     } else {
       const err = await res.json().catch(() => ({}));
       alert(err?.error || 'Error al generar vale');
@@ -138,20 +189,30 @@ const CrearVale = () => {
           <option value="estacion">Estación de servicio</option>
         </select>
 
-        <select
-          name="combustible_lubricante"
-          value={formData.combustible_lubricante}
-          onChange={handleChange}
-          className="input-style"
-          required
-        >
-          <option value="">Seleccione insumo</option>
-          {insumos.map((item: any) => (
-            <option key={item.id} value={item.nombre}>
-              {item.nombre} - {item.tipo}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-col">
+          <select
+            name="combustible_lubricante"
+            value={formData.combustible_lubricante}
+            onChange={handleChange}
+            className="input-style"
+            required
+          >
+            <option value="">Seleccione insumo</option>
+            {insumos.map((item) => (
+              <option key={item.id} value={item.nombre}>
+                {item.nombre} - {item.tipo}
+              </option>
+            ))}
+          </select>
+          {/* Info de stock solo si origen=obrador */}
+          {formData.origen === 'obrador' && (
+            <span className="text-xs text-gray-600 mt-1">
+              {stockDisponible === null
+                ? 'Seleccioná un insumo para ver stock disponible.'
+                : `Stock disponible en obrador: ${stockDisponible}`}
+            </span>
+          )}
+        </div>
 
         <input
           name="litros"
@@ -190,7 +251,7 @@ const CrearVale = () => {
           required
         />
 
-        {/* 🔹 Encargado autocompletado y siempre readonly */}
+        {/* Encargado autocompletado y readonly */}
         <input
           name="encargado"
           value={formData.encargado}
@@ -212,7 +273,7 @@ const CrearVale = () => {
 
         <input type="date" name="fecha" value={formData.fecha} readOnly className="input-style" required />
 
-        {/* 👇 Select de Chofer sin email */}
+        {/* Select de Chofer (opcional) */}
         <div className="md:col-span-3">
           <label className="block text-sm font-medium text-gray-700 mb-1">Chofer (opcional)</label>
           <select
@@ -248,6 +309,7 @@ const CrearVale = () => {
                 origen: 'obrador',
               });
               setChoferId('');
+              setStockDisponible(null);
             }}
             className="px-4 py-2 bg-gray-300 text-black rounded"
           >
