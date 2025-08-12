@@ -26,6 +26,9 @@ type StockItem = {
   creado_en: string;
 };
 
+const normalize = (v: unknown) => (v ?? '').toString().trim();
+const lower = (v: unknown) => normalize(v).toLowerCase();
+
 const CrearVale = () => {
   const [formData, setFormData] = useState({
     combustible_lubricante: '',
@@ -52,12 +55,44 @@ const CrearVale = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const vehiculos = await fetch('/api/vehiculo', { cache: 'no-store' }).then(r => r.json());
-      const obras = await fetch('/api/obra', { cache: 'no-store' }).then(r => r.json());
-      const stock = await fetch('/api/stock', { cache: 'no-store' }).then(r => r.json());
-      setVehiculos(vehiculos);
-      setObras(obras);
-      setInsumos(stock);
+      const vehiculosRes = await fetch('/api/vehiculo', { cache: 'no-store' }).then(r => r.json());
+      const obrasRes = await fetch('/api/obra', { cache: 'no-store' }).then(r => r.json());
+      const stockRes = await fetch('/api/stock', { cache: 'no-store' }).then(r => r.json());
+
+      // 🚗 Ordenar vehículos: primero con patente, por patente; desempate por marca+modelo
+      const vehiculosOrdenados = [...vehiculosRes].sort((a: any, b: any) => {
+        const ap = lower(a.patente);
+        const bp = lower(b.patente);
+        const aHas = ap.length > 0;
+        const bHas = bp.length > 0;
+        if (aHas && !bHas) return -1;
+        if (!aHas && bHas) return 1;
+        if (aHas && bHas) {
+          const byPat = ap.localeCompare(bp, 'es', { sensitivity: 'base', numeric: true });
+          if (byPat !== 0) return byPat;
+        }
+        const an = `${lower(a.marca)} ${lower(a.modelo)}`.trim();
+        const bn = `${lower(b.marca)} ${lower(b.modelo)}`.trim();
+        return an.localeCompare(bn, 'es', { sensitivity: 'base', numeric: true });
+      });
+
+      // 🏗 Ordenar obras por nombre y luego ubicación
+      const obrasOrdenadas = [...obrasRes].sort((a: any, b: any) => {
+        const byNombre = lower(a.nombre).localeCompare(lower(b.nombre), 'es', { sensitivity: 'base' });
+        if (byNombre !== 0) return byNombre;
+        return lower(a.ubicacion).localeCompare(lower(b.ubicacion), 'es', { sensitivity: 'base' });
+      });
+
+      // 🛢️ Ordenar insumos por nombre y luego tipo
+      const stockOrdenado = [...stockRes].sort((a: StockItem, b: StockItem) => {
+        const byNombre = lower(a.nombre).localeCompare(lower(b.nombre), 'es', { sensitivity: 'base' });
+        if (byNombre !== 0) return byNombre;
+        return lower(a.tipo).localeCompare(lower(b.tipo), 'es', { sensitivity: 'base' });
+      });
+
+      setVehiculos(vehiculosOrdenados);
+      setObras(obrasOrdenadas);
+      setInsumos(stockOrdenado);
     };
 
     const fetchUser = async () => {
@@ -78,7 +113,16 @@ const CrearVale = () => {
         const r = await fetch('/api/usuario?rol=chofer', { cache: 'no-store' });
         if (!r.ok) throw new Error('No se pudieron cargar choferes');
         const json = await r.json();
-        setChoferes(Array.isArray(json.usuarios) ? json.usuarios : json);
+        const lista: Chofer[] = Array.isArray(json.usuarios) ? json.usuarios : json;
+
+        // 🚚 Ordenar choferes por Apellido, Nombre
+        const choferesOrdenados = [...lista].sort((a: Chofer, b: Chofer) => {
+          const byApe = lower(a.apellido).localeCompare(lower(b.apellido), 'es', { sensitivity: 'base' });
+          if (byApe !== 0) return byApe;
+          return lower(a.nombre).localeCompare(lower(b.nombre), 'es', { sensitivity: 'base' });
+        });
+
+        setChoferes(choferesOrdenados);
       } catch (e) {
         console.error(e);
         setChoferes([]);
@@ -100,7 +144,7 @@ const CrearVale = () => {
       return;
     }
     const sel = insumos.find(
-      s => s.nombre.toLowerCase() === formData.combustible_lubricante.toLowerCase()
+      s => lower(s.nombre) === lower(formData.combustible_lubricante)
     );
     setStockDisponible(sel ? Number(sel.cantidad) : null);
   }, [formData.combustible_lubricante, insumos]);
@@ -127,7 +171,7 @@ const CrearVale = () => {
       }
 
       const insumoSel = insumos.find(
-        s => s.nombre.toLowerCase() === String(formData.combustible_lubricante).toLowerCase()
+        s => lower(s.nombre) === lower(String(formData.combustible_lubricante))
       );
 
       if (!insumoSel) {
@@ -228,7 +272,7 @@ const CrearVale = () => {
           <option value="">Seleccione un vehículo</option>
           {vehiculos.map((v: any) => (
             <option key={v.id} value={v.id}>
-              {v.marca} - {v.modelo} ({v.patente})
+              {normalize(v.patente) ? `${normalize(v.patente)} — ${normalize(v.marca)} ${normalize(v.modelo)}` : `${normalize(v.marca)} ${normalize(v.modelo)}`}
             </option>
           ))}
         </select>
@@ -237,7 +281,7 @@ const CrearVale = () => {
           <option value="">Seleccione una obra</option>
           {obras.map((obra: any) => (
             <option key={obra.id} value={obra.nombre}>
-              {obra.nombre} {obra.ubicacion ? `- ${obra.ubicacion}` : ''}
+              {obra.nombre}{obra.ubicacion ? ` - ${obra.ubicacion}` : ''}
             </option>
           ))}
         </select>
