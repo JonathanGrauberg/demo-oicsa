@@ -29,6 +29,15 @@ type StockItem = {
 const normalize = (v: unknown) => (v ?? '').toString().trim();
 const lower = (v: unknown) => normalize(v).toLowerCase();
 
+// ✅ Fecha local YYYY-MM-DD (sin UTC shift)
+const todayLocal = () => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 const CrearVale = () => {
   const [formData, setFormData] = useState({
     combustible_lubricante: '',
@@ -133,8 +142,8 @@ const CrearVale = () => {
     fetchUser();
     fetchChoferes();
 
-    const today = new Date().toISOString().split('T')[0];
-    setFormData(prev => ({ ...prev, fecha: today }));
+    // ✅ Setear hoy en LOCAL
+    setFormData(prev => ({ ...prev, fecha: todayLocal() }));
   }, []);
 
   // Actualiza el “stockDisponible” cuando cambia el insumo seleccionado o el listado
@@ -194,6 +203,8 @@ const CrearVale = () => {
     const vale = {
       ...formData,
       solicitado_por,
+      // Aseguramos que salga en LOCAL por si algo lo cambió
+      fecha: formData.fecha || todayLocal(),
     };
 
     const res = await fetch('/api/vale', {
@@ -211,7 +222,8 @@ const CrearVale = () => {
         obra: '',
         destino: '',
         encargado: `${user.nombre} ${user.apellido}`, // mantener autocompletado
-        fecha: new Date().toISOString().split('T')[0],
+        // ✅ reset en LOCAL
+        fecha: todayLocal(),
         kilometraje: '',
         origen: 'obrador',
       });
@@ -315,6 +327,7 @@ const CrearVale = () => {
           required
         />
 
+        {/* Fecha en LOCAL y solo lectura */}
         <input type="date" name="fecha" value={formData.fecha} readOnly className="input-style" required />
 
         {/* Select de Chofer (opcional) */}
@@ -348,7 +361,8 @@ const CrearVale = () => {
                 obra: '',
                 destino: '',
                 encargado: user ? `${user.nombre} ${user.apellido}` : '',
-                fecha: new Date().toISOString().split('T')[0],
+                // ✅ reset LOCAL
+                fecha: todayLocal(),
                 kilometraje: '',
                 origen: 'obrador',
               });
