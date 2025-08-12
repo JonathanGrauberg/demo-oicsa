@@ -46,15 +46,16 @@ function RowUser({
       alert('No podés eliminar tu propio usuario.');
       return;
     }
-    const ok = confirm(`¿Eliminar al usuario "${u.nombre} ${u.apellido}"? Esta acción no se puede deshacer.`);
+    const ok = confirm(`¿Eliminar al usuario "${u.apellido}, ${u.nombre}"? Esta acción no se puede deshacer.`);
     if (!ok) return;
     await onDelete(u.id);
   };
 
   return (
     <tr className="border-t">
-      <td className="px-4 py-2">{u.nombre}</td>
+      {/* Apellido primero */}
       <td className="px-4 py-2">{u.apellido}</td>
+      <td className="px-4 py-2">{u.nombre}</td>
       <td className="px-4 py-2">{u.email}</td>
       <td className="px-4 py-2 capitalize">
         {editando ? (
@@ -140,18 +141,26 @@ export default function UsersPage() {
     load();
   }, []);
 
-  // filtro
+  // filtro + orden por apellido y nombre
   const usuariosFiltrados = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return usuarios;
-    return usuarios.filter((u) =>
-      `${u.nombre} ${u.apellido} ${u.email} ${u.rol}`.toLowerCase().includes(term)
-    );
+    let filtrados = usuarios;
+
+    if (term) {
+      filtrados = usuarios.filter((u) =>
+        `${u.apellido} ${u.nombre} ${u.email} ${u.rol}`.toLowerCase().includes(term)
+      );
+    }
+
+    return [...filtrados].sort((a, b) => {
+      const cmpApellido = a.apellido.localeCompare(b.apellido, 'es', { sensitivity: 'base' });
+      if (cmpApellido !== 0) return cmpApellido;
+      return a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' });
+    });
   }, [usuarios, q]);
 
   const puedeEditar = me?.rol === 'superusuario';
 
-  // PUT actualizar rol + actualización optimista
   const cambiarRol = async (id: number, nuevo: Usuario['rol']) => {
     setUsuarios((prev) => prev.map((u) => (u.id === id ? { ...u, rol: nuevo } : u)));
     const res = await fetch('/api/usuario', {
@@ -160,7 +169,6 @@ export default function UsersPage() {
       body: JSON.stringify({ id, rol: nuevo }),
     });
     if (!res.ok) {
-      // revertir si falla
       setUsuarios((prev) =>
         prev.map((u) => (u.id === id ? { ...u, rol: (prev.find((p) => p.id === id)?.rol as Usuario['rol']) } : u))
       );
@@ -169,7 +177,6 @@ export default function UsersPage() {
     }
   };
 
-  // DELETE usuario
   const eliminarUsuario = async (id: number) => {
     try {
       const res = await fetch('/api/usuario', {
@@ -196,7 +203,7 @@ export default function UsersPage() {
       <div className="mb-4 flex flex-col sm:flex-row gap-3">
         <input
           className="border rounded p-2 w-full sm:w-96"
-          placeholder="Buscar por nombre, apellido, email o rol…"
+          placeholder="Buscar por apellido, nombre, email o rol…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -209,8 +216,8 @@ export default function UsersPage() {
         <table className="min-w-full bg-white border border-gray-300 rounded-md">
           <thead className="bg-gray-100 text-gray-700">
             <tr>
-              <th className="px-4 py-2 text-left">Nombre</th>
               <th className="px-4 py-2 text-left">Apellido</th>
+              <th className="px-4 py-2 text-left">Nombre</th>
               <th className="px-4 py-2 text-left">Email</th>
               <th className="px-4 py-2 text-left">Rol</th>
               <th className="px-4 py-2 text-left">Acciones</th>
