@@ -1,68 +1,97 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
+import jwt from 'jsonwebtoken';
+
+const SECRET_KEY = process.env.JWT_SECRET || 'clave-secreta';
 
 export async function POST(req: NextRequest) {
+  let client: any;
   try {
-    const { id } = await req.json();
+    // 1) Auth: sacar aprobador desde el token
+    const token = req.cookies.get('token')?.value;
+    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    // 🔎 Obtener datos del vale (incluyendo "origen")
+    const decoded = jwt.verify(token, SECRET_KEY) as { id: number; rol: string };
+    const aprobadorId = decoded.id;
+
+    const { id } = await req.json();
+    if (!id) return NextResponse.json({ error: 'ID de vale requerido' }, { status: 400 });
+
+    // 2) Traer vale
     const valeRes = await pool.query(
-      `SELECT combustible_lubricante, litros, origen 
-       FROM vale 
+      `SELECT combustible_lubricante, litros, origen
+       FROM vale
        WHERE id = $1`,
       [id]
     );
-
     if (valeRes.rows.length === 0) {
       return NextResponse.json({ error: 'Vale no encontrado' }, { status: 404 });
     }
 
     const { combustible_lubricante, litros, origen } = valeRes.rows[0];
 
-    // ✅ Si el origen es "estación", aprobar sin tocar el stock
+    // 3) Si es estación: aprobar sin tocar stock
     if (origen === 'estacion') {
       await pool.query(
         `UPDATE vale SET aprobado = true, aprobado_por = $1 WHERE id = $2`,
-        [1, id] // ⚠️ Cambiar 1 por el id del usuario real si usas auth
+        [aprobadorId, id]
       );
       return NextResponse.json({ success: true, message: 'Vale aprobado (sin descuento de stock).' });
     }
 
-    // ✅ Para "obrador", descontar stock normalmente
-    const stockRes = await pool.query(
-      `SELECT id, cantidad FROM stock WHERE nombre = $1`,
+    // 4) Obrador: transacción para descontar stock y aprobar
+    client = await pool.connect();
+    await client.query('BEGIN');
+
+    // Bloqueo pesimista del ítem de stock
+    const stockRes = await client.query(
+      `SELECT id, cantidad
+       FROM stock
+       WHERE nombre = $1
+       FOR UPDATE`,
       [combustible_lubricante]
     );
-
     if (stockRes.rows.length === 0) {
+      await client.query('ROLLBACK');
       return NextResponse.json({ error: 'Insumo no encontrado en stock' }, { status: 404 });
     }
 
-    const { id: stockId, cantidad: cantidadActual } = stockRes.rows[0];
+    const { id: stockId, cantidad } = stockRes.rows[0];
+    const disponible = Number(cantidad);
+    const reqLitros = Number(litros);
 
-    const cantidadEnNumero = Number(cantidadActual);
-    const litrosEnNumero = Number(litros);
+    if (Number.isNaN(reqLitros) || reqLitros <= 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ error: 'Cantidad de litros inválida' }, { status: 400 });
+    }
 
-    if (cantidadEnNumero < litrosEnNumero) {
+    if (disponible < reqLitros) {
+      await client.query('ROLLBACK');
       return NextResponse.json({ error: 'Stock insuficiente' }, { status: 400 });
     }
 
-    const nuevaCantidad = cantidadEnNumero - litrosEnNumero;
+    const nuevaCantidad = disponible - reqLitros;
 
-    await pool.query(
+    await client.query(
       `UPDATE stock SET cantidad = $1 WHERE id = $2`,
       [nuevaCantidad, stockId]
     );
 
-    // ✅ Marcar vale como aprobado
-    await pool.query(
+    await client.query(
       `UPDATE vale SET aprobado = true, aprobado_por = $1 WHERE id = $2`,
-      [1, id]
+      [aprobadorId, id]
     );
+
+    await client.query('COMMIT');
 
     return NextResponse.json({ success: true, message: 'Vale aprobado y stock actualizado.' });
   } catch (error) {
+    if (client) {
+      try { await client.query('ROLLBACK'); } catch {}
+    }
     console.error('Error al aprobar vale:', error);
     return NextResponse.json({ error: 'Error en el servidor' }, { status: 500 });
+  } finally {
+    if (client) client.release?.();
   }
 }
