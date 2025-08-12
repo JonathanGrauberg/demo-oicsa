@@ -42,7 +42,7 @@ const Navbar = () => {
       <div className="container mx-auto flex justify-between items-center">
         {/* Logo o Nombre Empresa */}
         <div className="flex items-center space-x-2">
-          <span className="text-2xl font-bold">OICSA</span>
+          <span className="text-2xl font-bold">O.I.C. S.A.</span>
         </div>
 
         {/* Datos del Usuario */}

@@ -124,7 +124,6 @@ function VehiculoRow({
     const ok = confirm(`¿Eliminar el vehículo ${item.marca} ${item.modelo} (${item.patente})?`);
     if (!ok) return;
 
-    // intento simple
     const res = await fetch('/api/vehiculo', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -140,7 +139,7 @@ function VehiculoRow({
     if (res.status === 409 && err?.referencias > 0) {
       const ok2 = confirm(
         `Este vehículo está referenciado por ${err.referencias} vale(s).\n` +
-        `¿Querés DESVINCULAR esos vales (dejando la patente como texto) y eliminar el vehículo igualmente?`
+          `¿Querés DESVINCULAR esos vales (dejando la patente como texto) y eliminar el vehículo igualmente?`
       );
       if (!ok2) return;
 
@@ -171,8 +170,12 @@ function VehiculoRow({
           {item.kilometraje != null ? item.kilometraje.toLocaleString('es-AR') : 'Sin datos'}
         </td>
         <td className="px-4 py-2 space-x-2">
-          <button onClick={abrir} className="bg-blue-500 text-white px-2 py-1 rounded"> {expanded ? 'Cerrar' : 'Editar'} </button>
-          <button onClick={eliminar} className="bg-red-600 text-white px-2 py-1 rounded">Eliminar</button>
+          <button onClick={abrir} className="bg-blue-500 text-white px-2 py-1 rounded">
+            {expanded ? 'Cerrar' : 'Editar'}
+          </button>
+          <button onClick={eliminar} className="bg-red-600 text-white px-2 py-1 rounded">
+            Eliminar
+          </button>
         </td>
       </tr>
 
@@ -189,7 +192,7 @@ function VehiculoRow({
 
                 <Input label="Patente" value={form.patente || ''} onChange={(e) => set('patente', e.target.value)} />
 
-                <Input label="Año" type="number" value={form.ano as any || ''} onChange={(e) => set('ano', e.target.value)} />
+                <Input label="Año" type="number" value={(form.ano as any) || ''} onChange={(e) => set('ano', e.target.value)} />
                 <Input label="Kilometraje" type="number" value={form.kilometraje ?? ''} onChange={(e) => set('kilometraje', Number(e.target.value))} />
                 <Input label="Chasis" value={form.chasis || ''} onChange={(e) => set('chasis', e.target.value)} />
                 <Input label="Motor" value={form.motor || ''} onChange={(e) => set('motor', e.target.value)} />
@@ -214,7 +217,9 @@ function VehiculoRow({
                 </div>
 
                 <div className="md:col-span-4 flex gap-2 justify-end mt-2">
-                  <button onClick={() => setExpanded(false)} type="button" className="px-3 py-2 rounded bg-gray-300">Cancelar</button>
+                  <button onClick={() => setExpanded(false)} type="button" className="px-3 py-2 rounded bg-gray-300">
+                    Cancelar
+                  </button>
                   <button onClick={guardar} disabled={saving} type="button" className="px-3 py-2 rounded bg-green-600 text-white disabled:opacity-50">
                     {saving ? 'Guardando…' : 'Guardar cambios'}
                   </button>
@@ -248,31 +253,32 @@ export default function VehiculosPage() {
     setVehiculos((prev) => prev.filter((x) => x.id !== id));
   };
 
+  // Helpers para ordenar por patente (no vacíos primero)
+  const normalize = (v: unknown) => (v ?? '').toString().trim();
+  const cmpPatente = (a: Vehiculo, b: Vehiculo) => {
+    const ap = normalize(a.patente);
+    const bp = normalize(b.patente);
+    const aHas = ap.length > 0;
+    const bHas = bp.length > 0;
+    if (aHas && !bHas) return -1;
+    if (!aHas && bHas) return 1;
+    return ap.localeCompare(bp, 'es', { sensitivity: 'base', numeric: true });
+  };
+
   const vehiculosFiltrados = useMemo(() => {
-  const t = busqueda.trim().toLowerCase();
-  let lista = [...vehiculos];
+    const t = busqueda.trim().toLowerCase();
+    let lista = [...vehiculos];
 
-  // Ordenar por marca y luego por modelo
-  lista.sort((a, b) => {
-    const marcaA = a.marca?.toLowerCase() || '';
-    const marcaB = b.marca?.toLowerCase() || '';
-    if (marcaA < marcaB) return -1;
-    if (marcaA > marcaB) return 1;
+    if (t) {
+      lista = lista.filter((v) =>
+        `${v.patente} ${v.marca} ${v.modelo}`.toLowerCase().includes(t)
+      );
+    }
 
-    const modeloA = a.modelo?.toLowerCase() || '';
-    const modeloB = b.modelo?.toLowerCase() || '';
-    if (modeloA < modeloB) return -1;
-    if (modeloA > modeloB) return 1;
-    return 0;
-  });
-
-  if (!t) return lista;
-
-  return lista.filter((v) =>
-    `${v.marca} ${v.modelo} ${v.patente}`.toLowerCase().includes(t)
-  );
-}, [vehiculos, busqueda]);
-
+    // Ordenar por patente (los vacíos al final)
+    lista.sort(cmpPatente);
+    return lista;
+  }, [vehiculos, busqueda]);
 
   return (
     <div className="p-6">
@@ -280,7 +286,7 @@ export default function VehiculosPage() {
 
       <input
         type="text"
-        placeholder="Buscar por marca, modelo o patente..."
+        placeholder="Buscar por patente, marca o modelo..."
         className="mb-4 p-2 border border-gray-300 rounded w-full sm:w-96"
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
@@ -300,11 +306,18 @@ export default function VehiculosPage() {
           <tbody>
             {vehiculosFiltrados.length ? (
               vehiculosFiltrados.map((item) => (
-                <VehiculoRow key={item.id} item={item} onActualizarFila={onActualizarFila} onDelete={onDelete} />
+                <VehiculoRow
+                  key={item.id}
+                  item={item}
+                  onActualizarFila={onActualizarFila}
+                  onDelete={onDelete}
+                />
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-gray-500">Sin resultados.</td>
+                <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                  Sin resultados.
+                </td>
               </tr>
             )}
           </tbody>
