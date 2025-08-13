@@ -87,7 +87,7 @@ export default function ValesAprobados() {
   // ====== Posicionamiento en A4 (arriba, centrado) ======
   const A4_W = doc.internal.pageSize.getWidth();   // 210 mm
   const A4_H = doc.internal.pageSize.getHeight();  // 297 mm
-  const topOffset = 10; // margen superior en A4 (ajustable)
+  const topOffset = 0; // margen superior en A4 (ajustable)
   const leftOffset = (A4_W - baseW) / 2; // centrado horizontal
 
   // Helpers para trasladar todo el layout original
