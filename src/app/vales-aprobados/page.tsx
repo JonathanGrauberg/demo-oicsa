@@ -11,7 +11,7 @@ type Vale = {
   vehiculo: number;
   obra: string;
   destino: string;
-  encargado: string; // chofer
+  encargado: string; // fallback si no vienen los solicitado_*
   fecha: string;     // 'YYYY-MM-DD'
   aprobado: boolean;
   kilometraje: number;
@@ -32,7 +32,6 @@ export default function ValesAprobados() {
   const [encargadoLogueado, setEncargadoLogueado] = useState<string>('Encargado');
 
   useEffect(() => {
-    // quien está logueado (para firma)
     (async () => {
       try {
         const r = await fetch('/api/auth/me', { cache: 'no-store' });
@@ -67,7 +66,7 @@ export default function ValesAprobados() {
       const img = new Image();
       img.onload = () => resolve(img);
       img.onerror = reject;
-      img.src = url; // mismo origen (public), no precisa CORS
+      img.src = url;
     });
 
   // ✅ parsea 'YYYY-MM-DD' como fecha local y permite sumar días
@@ -79,36 +78,42 @@ export default function ValesAprobados() {
     return dt.toLocaleDateString('es-AR');
   };
 
+  // ✅ nombre del chofer desde solicitado_* con fallback a encargado
+  const nombreChoferDe = (v: Vale) =>
+    [v.solicitado_nombre, v.solicitado_apellido].filter(Boolean).join(' ').trim() || v.encargado || '';
+
   const imprimirVale = async (vale: Vale) => {
+    // ===== Config rápidos =====
+    const TOP_OFFSET = -2;        // ⬆️ sube/baja TODO el recuadro (mm). (-2 = 2mm más arriba)
+    const SIGN_LABEL_OFFSET = 14; // ⬇️ distancia desde el borde inferior del recuadro a las firmas (mm)
+
     // 👉 Documento A4 vertical (vale A6 apaisado centrado arriba)
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'A4' });
 
-    // ====== Geometría base del vale (A6 landscape) ======
-    const A6_W = 148;
-    const A6_H = 105;
-
+    // ===== Geometría base del vale (A6 landscape) =====
+    const A6_W = 148; // ancho en mm
+    const A6_H = 105; // alto en mm
     const baseMargin = 8;
     const baseW = A6_W;
     const baseH = A6_H;
 
-    // ====== Posicionamiento en A4 (arriba, centrado) ======
-    const A4_W = doc.internal.pageSize.getWidth();   // 210 mm
-    // const A4_H = doc.internal.pageSize.getHeight(); // 297 mm (no lo usamos)
-    const topOffset = 0; // margen superior en A4 (ajustable)
-    const leftOffset = (A4_W - baseW) / 2; // centrado horizontal
+    // ===== Posicionamiento en A4 (arriba, centrado) =====
+    const A4_W = doc.internal.pageSize.getWidth(); // 210 mm
+    const topOffset = TOP_OFFSET;                  // margen superior en A4
+    const leftOffset = (A4_W - baseW) / 2;         // centrado horizontal
 
     // Helpers para trasladar todo el layout original
     const TX = (x: number) => leftOffset + x;
     const TY = (y: number) => topOffset + y;
 
-    // ========== Layout ORIGINAL (A6 landscape) ==========
+    // ===== Layout ORIGINAL (A6 landscape) =====
     const margin = baseMargin;
     const pageW = baseW;
     const pageH = baseH;
     const cardX = margin;
     const cardY = margin;
     const cardW = pageW - margin * 2;
-    const cardH = pageH - margin * 2 - 8; // dejamos 8mm libres abajo para las leyendas de firma
+    const cardH = pageH - margin * 2 - 8; // dejamos 8mm libres abajo (las firmas van fuera)
     const radius = 4;
 
     // marca de agua (transparencia la trae el PNG)
@@ -120,9 +125,7 @@ export default function ValesAprobados() {
       const wmX = cardX + (cardW - wmW) / 2;
       const wmY = cardY + (cardH - wmH) / 2;
       doc.addImage(logo, 'PNG', TX(wmX), TY(wmY), wmW, wmH, undefined, 'FAST');
-    } catch {
-      // si falla, seguimos sin marca de agua
-    }
+    } catch {}
 
     // borde
     doc.setDrawColor(0);
@@ -144,10 +147,10 @@ export default function ValesAprobados() {
     doc.setLineWidth(0.4);
     doc.line(TX(cardX + 8), TY(cardY + 18.5), TX(cardX + cardW - 8), TY(cardY + 18.5));
 
-    // Nº y fecha (arriba derecha) — usar formato local +1 día
+    // Nº y fecha (arriba derecha) — formateo local +1 día
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    const fechaStr = formatFechaLocal(vale.fecha, 1); // 👈 suma 1 día
+    const fechaStr = formatFechaLocal(vale.fecha, 1);
     const rightX = cardX + cardW - 8;
     doc.text(`Nº: ${vale.id}`, TX(rightX), TY(cardY + 8), { align: 'right' });
     doc.text(`Fecha: ${fechaStr}`, TX(rightX), TY(cardY + 13), { align: 'right' });
@@ -160,19 +163,32 @@ export default function ValesAprobados() {
     let y = cardY + 28;
     const lineH = 6;
 
+    // 🔧 Fila con negrita condicional para valores de 'Insumo' y 'Lts/Kg'
     const row = (labelL: string, valueL: string, labelR: string, valueR: string) => {
       // izquierda
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       doc.text(labelL, TX(col1X), TY(y));
-      doc.setFont('helvetica', 'normal');
+
+      // valor izquierda
+      if (labelL === 'Insumo:') {
+        doc.setFont('helvetica', 'bold');   // valor de Insumo en negrita
+      } else {
+        doc.setFont('helvetica', 'normal');
+      }
       const leftLines = doc.splitTextToSize(valueL || '-', colW);
       doc.text(leftLines, TX(col1X), TY(y + 5));
 
       // derecha
       doc.setFont('helvetica', 'bold');
       doc.text(labelR, TX(col2X), TY(y));
-      doc.setFont('helvetica', 'normal');
+
+      // valor derecha
+      if (labelR === 'Lts/Kg:') {
+        doc.setFont('helvetica', 'bold');   // valor de Lts/Kg en negrita
+      } else {
+        doc.setFont('helvetica', 'normal');
+      }
       const rightLines = doc.splitTextToSize(valueR || '-', colW);
       doc.text(rightLines, TX(col2X), TY(y + 5));
 
@@ -181,15 +197,17 @@ export default function ValesAprobados() {
     };
 
     row('KM:', String(vale.kilometraje ?? ''), 'Dominio:', vale.patente || '');
-    row('Retiro (Chofer):', vale.encargado || '', 'Obra:', vale.obra || '');
+    // ⬇️ chofer correcto
+    row('Retiro (Chofer):', nombreChoferDe(vale), 'Obra:', vale.obra || '');
     row('Marca:', vale.marca || '', 'Modelo:', vale.modelo || '');
     row('Insumo:', vale.combustible_lubricante || '', 'Lts/Kg:', String(vale.litros ?? ''));
 
-    // leyendas de firma (fuera del recuadro, debajo)
-    const labelsY = cardY + cardH + 6;
+    // Firmas (fuera del recuadro, MÁS ABAJO)
+    const labelsY = cardY + cardH + SIGN_LABEL_OFFSET;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
-    doc.text(`Firma Chofer: ${vale.encargado || ''}`, TX(col1X), TY(labelsY));
+    // ⬇️ firma del chofer correcta
+    doc.text(`Firma Chofer: ${nombreChoferDe(vale)}`, TX(col1X), TY(labelsY));
     doc.text(`Firma Encargado: ${encargadoLogueado}`, TX(col2X), TY(labelsY));
 
     doc.save(`vale_${vale.id}.pdf`);
@@ -257,7 +275,8 @@ export default function ValesAprobados() {
                 </td>
                 <td className="p-2">{vale.kilometraje}</td>
                 <td className="p-2">{vale.obra}</td>
-                <td className="p-2">{vale.encargado}</td>
+                {/* ⬇️ chofer correcto también en la tabla */}
+                <td className="p-2">{nombreChoferDe(vale)}</td>
                 <td className="p-2">
                   <button
                     onClick={() => imprimirVale(vale)}
