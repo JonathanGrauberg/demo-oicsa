@@ -71,108 +71,141 @@ export default function ValesAprobados() {
     });
 
   const imprimirVale = async (vale: Vale) => {
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'A6' });
+  // 👉 Ahora el documento es A4 en vertical
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'A4' });
 
-    // caja principal
-    const margin = 8;
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const cardX = margin;
-    const cardY = margin;
-    const cardW = pageW - margin * 2;
-    const cardH = pageH - margin * 2 - 8; // dejamos 8mm libres abajo para las leyendas de firma
-    const radius = 4;
+  // ====== Geometría base del vale (A6 landscape) ======
+  // A6 landscape ≈ 148mm x 105mm
+  const A6_W = 148;
+  const A6_H = 105;
 
-    // marca de agua (vos ya la dejás con transparencia desde Canva)
-    try {
-      const logo = await loadImage('/img/oicsa.png');
-      // la dibujamos grande y centrada como “watermark”
-      const wmW = cardW * 0.85;
-      const ratio = logo.height / logo.width;
-      const wmH = wmW * ratio;
-      const wmX = cardX + (cardW - wmW) / 2;
-      const wmY = cardY + (cardH - wmH) / 2;
-      doc.addImage(logo, 'PNG', wmX, wmY, wmW, wmH, undefined, 'FAST');
-    } catch {
-      // si falla, seguimos sin marca de agua
-    }
+  // Mantener márgenes/dimensiones originales del vale
+  const baseMargin = 8;
+  const baseW = A6_W;
+  const baseH = A6_H;
 
-    // borde
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.6);
-    doc.roundedRect(cardX, cardY, cardW, cardH, radius, radius, 'S');
+  // ====== Posicionamiento en A4 (arriba, centrado) ======
+  const A4_W = doc.internal.pageSize.getWidth();   // 210 mm
+  const A4_H = doc.internal.pageSize.getHeight();  // 297 mm
+  const topOffset = 10; // margen superior en A4 (ajustable)
+  const leftOffset = (A4_W - baseW) / 2; // centrado horizontal
 
-    // título
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.text('VALE POR INSUMO', cardX + 8, cardY + 10);
+  // Helpers para trasladar todo el layout original
+  const TX = (x: number) => leftOffset + x;
+  const TY = (y: number) => topOffset + y;
 
-    // subtítulo "solo válido en ..."
-    const subtitulo =
-      'SOLO VÁLIDO EN ' + (vale.origen?.toLowerCase() === 'estacion' ? 'ESTACIÓN' : 'OBRADOR');
-    doc.setFontSize(12);
-    doc.text(subtitulo, cardX + 8, cardY + 16);
-    // línea separadora
-    doc.setLineWidth(0.4);
-    doc.line(cardX + 8, cardY + 18.5, cardX + cardW - 8, cardY + 18.5);
+  // ========== Layout ORIGINAL (A6 landscape) ==========
+  const margin = baseMargin;
+  const pageW = baseW;
+  const pageH = baseH;
+  const cardX = margin;
+  const cardY = margin;
+  const cardW = pageW - margin * 2;
+  const cardH = pageH - margin * 2 - 8; // dejamos 8mm libres abajo para las leyendas de firma
+  const radius = 4;
 
-    // Nº y fecha (arriba derecha)
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    const fechaStr = new Date(vale.fecha).toLocaleDateString();
-    const rightX = cardX + cardW - 8;
-    doc.text(`Nº: ${vale.id}`, rightX, cardY + 8, { align: 'right' });
-    doc.text(`Fecha: ${fechaStr}`, rightX, cardY + 13, { align: 'right' });
+  // helper para cargar imagen del public
+  const loadImage = (url: string) =>
+    new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = url; // mismo origen (public), no precisa CORS
+    });
 
-    // columnas
-    const colGap = 14;
-    const colW = (cardW - 8 * 2 - colGap) / 2;
-    const col1X = cardX + 8;
-    const col2X = col1X + colW + colGap;
-    let y = cardY + 28;
-    const lineH = 6;
+  // marca de agua (transparencia la trae el PNG)
+  try {
+    const logo = await loadImage('/img/oicsa.png');
+    const wmW = cardW * 0.85;
+    const ratio = logo.height / logo.width;
+    const wmH = wmW * ratio;
+    const wmX = cardX + (cardW - wmW) / 2;
+    const wmY = cardY + (cardH - wmH) / 2;
+    doc.addImage(logo, 'PNG', TX(wmX), TY(wmY), wmW, wmH, undefined, 'FAST');
+  } catch {
+    // si falla, seguimos sin marca de agua
+  }
 
-    const row = (labelL: string, valueL: string, labelR: string, valueR: string) => {
-      // izquierda
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text(labelL, col1X, y);
-      doc.setFont('helvetica', 'normal');
-      const leftLines = doc.splitTextToSize(valueL || '-', colW);
-      doc.text(leftLines, col1X, y + 5);
+  // borde
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.6);
+  doc.roundedRect(TX(cardX), TY(cardY), cardW, cardH, radius, radius, 'S');
 
-      // derecha
-      doc.setFont('helvetica', 'bold');
-      doc.text(labelR, col2X, y);
-      doc.setFont('helvetica', 'normal');
-      const rightLines = doc.splitTextToSize(valueR || '-', colW);
-      doc.text(rightLines, col2X, y + 5);
+  // título
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('VALE POR INSUMO', TX(cardX + 8), TY(cardY + 10));
 
-      const maxLines = Math.max(leftLines.length, rightLines.length);
-      y += maxLines * lineH + 6;
-    };
+  // subtítulo "solo válido en ..."
+  const subtitulo =
+    'SOLO VÁLIDO EN ' + (vale.origen?.toLowerCase() === 'estacion' ? 'ESTACIÓN' : 'OBRADOR');
+  doc.setFontSize(12);
+  doc.text(subtitulo, TX(cardX + 8), TY(cardY + 16));
 
-    row('KM:', String(vale.kilometraje ?? ''), 'Dominio:', vale.patente || '');
-    row('Retiro (Chofer):', vale.encargado || '', 'Obra:', vale.obra || '');
-    row('Marca:', vale.marca || '', 'Modelo:', vale.modelo || '');
-    row('Insumo:', vale.combustible_lubricante || '', 'Lts/Kg:', String(vale.litros ?? ''));
+  // línea separadora
+  doc.setLineWidth(0.4);
+  doc.line(TX(cardX + 8), TY(cardY + 18.5), TX(cardX + cardW - 8), TY(cardY + 18.5));
 
-    // líneas de firma DENTRO del recuadro
-    //const lineY = cardY + cardH - 12;
-    //const lineW = colW - 6;
-    //doc.setLineWidth(0.6);
-    //doc.line(col1X, lineY, col1X + lineW, lineY);
-    //doc.line(col2X, lineY, col2X + lineW, lineY);
+  // Nº y fecha (arriba derecha)
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
 
-    // leyendas de firma FUERA del recuadro, debajo
-    const labelsY = cardY + cardH + 6; // fuera del rectángulo
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text(`Firma Chofer: ${vale.encargado || ''}`, col1X, labelsY);
-    doc.text(`Firma Encargado: ${encargadoLogueado}`, col2X, labelsY);
-
-    doc.save(`vale_${vale.id}.pdf`);
+  // (opcional) evitar shift de huso si vale.fecha es 'YYYY-MM-DD'
+  const formatFechaLocal = (isoDateOnly: string) => {
+    if (!isoDateOnly) return '';
+    const [y, m, d] = isoDateOnly.split('-').map(Number);
+    const dt = new Date(y, (m || 1) - 1, d || 1);
+    return dt.toLocaleDateString('es-AR');
   };
+  const fechaStr = formatFechaLocal(vale.fecha);
+
+  const rightX = cardX + cardW - 8;
+  doc.text(`Nº: ${vale.id}`, TX(rightX), TY(cardY + 8), { align: 'right' });
+  doc.text(`Fecha: ${fechaStr}`, TX(rightX), TY(cardY + 13), { align: 'right' });
+
+  // columnas
+  const colGap = 14;
+  const colW = (cardW - 8 * 2 - colGap) / 2;
+  const col1X = cardX + 8;
+  const col2X = col1X + colW + colGap;
+  let y = cardY + 28;
+  const lineH = 6;
+
+  const row = (labelL: string, valueL: string, labelR: string, valueR: string) => {
+    // izquierda
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(labelL, TX(col1X), TY(y));
+    doc.setFont('helvetica', 'normal');
+    const leftLines = doc.splitTextToSize(valueL || '-', colW);
+    doc.text(leftLines, TX(col1X), TY(y + 5));
+
+    // derecha
+    doc.setFont('helvetica', 'bold');
+    doc.text(labelR, TX(col2X), TY(y));
+    doc.setFont('helvetica', 'normal');
+    const rightLines = doc.splitTextToSize(valueR || '-', colW);
+    doc.text(rightLines, TX(col2X), TY(y + 5));
+
+    const maxLines = Math.max(leftLines.length, rightLines.length);
+    y += maxLines * lineH + 6;
+  };
+
+  row('KM:', String(vale.kilometraje ?? ''), 'Dominio:', vale.patente || '');
+  row('Retiro (Chofer):', vale.encargado || '', 'Obra:', vale.obra || '');
+  row('Marca:', vale.marca || '', 'Modelo:', vale.modelo || '');
+  row('Insumo:', vale.combustible_lubricante || '', 'Lts/Kg:', String(vale.litros ?? ''));
+
+  // leyendas de firma (fuera del recuadro, debajo)
+  const labelsY = cardY + cardH + 6;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.text(`Firma Chofer: ${vale.encargado || ''}`, TX(col1X), TY(labelsY));
+  doc.text(`Firma Encargado: ${encargadoLogueado}`, TX(col2X), TY(labelsY));
+
+  doc.save(`vale_${vale.id}.pdf`);
+};
+
 
   return (
     <div className="p-6">
