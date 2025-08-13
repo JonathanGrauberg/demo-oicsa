@@ -69,14 +69,18 @@ export default function ValesAprobados() {
       img.src = url;
     });
 
-  // ✅ parsea 'YYYY-MM-DD' como fecha local y permite sumar días
-  const formatFechaLocal = (isoDateOnly: string, addDays = 0) => {
-    if (!isoDateOnly) return '';
-    const [y, m, d] = isoDateOnly.split('-').map(Number);
-    const dt = new Date(y, (m || 1) - 1, d || 1);
-    if (addDays) dt.setDate(dt.getDate() + addDays);
-    return dt.toLocaleDateString('es-AR');
-  };
+  // ✅ Si viene 'YYYY-MM-DD' lo mostramos como DD/MM/YYYY sin tocar huso
+const formatFechaPlano = (s: string) => {
+  if (!s) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (m) {
+    const [, y, mm, dd] = m;
+    return `${dd}/${mm}/${y}`;
+  }
+  // Fallback por si llega con hora (timestamp)
+  const dt = new Date(s);
+  return isNaN(+dt) ? s : dt.toLocaleDateString('es-AR');
+};
 
   // ✅ nombre del chofer desde solicitado_* con fallback a encargado
   const nombreChoferDe = (v: Vale) =>
@@ -150,7 +154,7 @@ export default function ValesAprobados() {
     // Nº y fecha (arriba derecha) — formateo local +1 día
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    const fechaStr = formatFechaLocal(vale.fecha, 1);
+    const fechaStr = formatFechaPlano(vale.fecha);
     const rightX = cardX + cardW - 8;
     doc.text(`Nº: ${vale.id}`, TX(rightX), TY(cardY + 8), { align: 'right' });
     doc.text(`Fecha: ${fechaStr}`, TX(rightX), TY(cardY + 13), { align: 'right' });
@@ -266,7 +270,7 @@ export default function ValesAprobados() {
               <tr key={vale.id} className="border-t border-gray-200">
                 <td className="p-2">{vale.id}</td>
                 {/* ✅ Fecha sin desfase (+1 día) */}
-                <td className="p-2">{formatFechaLocal(vale.fecha, 1)}</td>
+                <td className="p-2">{formatFechaPlano(vale.fecha)}</td>
                 <td className="p-2">{vale.origen}</td>
                 <td className="p-2">{vale.combustible_lubricante}</td>
                 <td className="p-2">{vale.litros}</td>

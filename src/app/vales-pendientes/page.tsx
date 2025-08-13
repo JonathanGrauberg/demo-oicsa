@@ -72,13 +72,18 @@ export default function ValesPendientes() {
   const nombreChoferDe = (v: Vale) =>
     [v.solicitado_nombre, v.solicitado_apellido].filter(Boolean).join(' ').trim() || v.encargado || '';
 
-  const formatFechaLocal = (isoDateOnly: string, addDays = 0) => {
-    if (!isoDateOnly) return '';
-    const [y, m, d] = isoDateOnly.split('-').map(Number);
-    const dt = new Date(y, (m || 1) - 1, d || 1);
-    if (addDays) dt.setDate(dt.getDate() + addDays);
-    return dt.toLocaleDateString('es-AR');
-  };
+  // ✅ Si viene 'YYYY-MM-DD' lo mostramos como DD/MM/YYYY sin tocar huso
+const formatFechaPlano = (s: string) => {
+  if (!s) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (m) {
+    const [, y, mm, dd] = m;
+    return `${dd}/${mm}/${y}`;
+  }
+  // Fallback por si llega con hora (timestamp)
+  const dt = new Date(s);
+  return isNaN(+dt) ? s : dt.toLocaleDateString('es-AR');
+};
 
   return (
     <div className="p-6">
@@ -108,7 +113,7 @@ export default function ValesPendientes() {
                 {vale.marca} {vale.modelo} ({vale.patente})
               </td>
               <td className="p-2">{vale.obra}</td>
-              <td className="p-2">{formatFechaLocal(vale.fecha, 1)}</td>
+              <td className="p-2">{formatFechaPlano(vale.fecha)}</td>
               {/* 👇 chofer correcto */}
               <td className="p-2">{nombreChoferDe(vale)}</td>
               {/* 👇 origen antes de Acciones */}
