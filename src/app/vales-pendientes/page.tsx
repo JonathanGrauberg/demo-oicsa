@@ -11,7 +11,7 @@ type Vale = {
   obra: string;
   destino: string;
   encargado: string; // ← quien solicita (logueado)
-  fecha: string;     // 'YYYY-MM-DD'
+  fecha: string;     // puede venir 'YYYY-MM-DD' o 'YYYY-MM-DDTHH:mm:ss.sssZ'
   aprobado: boolean;
   kilometraje: number;
   creado_en: string;
@@ -72,18 +72,24 @@ export default function ValesPendientes() {
   const nombreChoferDe = (v: Vale) =>
     [v.solicitado_nombre, v.solicitado_apellido].filter(Boolean).join(' ').trim() || v.encargado || '';
 
-  // ✅ Si viene 'YYYY-MM-DD' lo mostramos como DD/MM/YYYY sin tocar huso
-const formatFechaPlano = (s: string) => {
-  if (!s) return '';
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (m) {
-    const [, y, mm, dd] = m;
-    return `${dd}/${mm}/${y}`;
-  }
-  // Fallback por si llega con hora (timestamp)
-  const dt = new Date(s);
-  return isNaN(+dt) ? s : dt.toLocaleDateString('es-AR');
-};
+  // ✅ Mostrar fecha de la DB como DD-MM-YYYY, sin usar Date()
+  const formatFechaPlano = (s: string) => {
+    if (!s) return '';
+    // ISO con tiempo: 2025-08-13T03:00:00.000Z
+    const mTs = /^(\d{4})-(\d{2})-(\d{2})T/.exec(s);
+    if (mTs) {
+      const [, y, mm, dd] = mTs;
+      return `${dd}-${mm}-${y}`;
+    }
+    // Simple: 2025-08-13
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (m) {
+      const [, y, mm, dd] = m;
+      return `${dd}-${mm}-${y}`;
+    }
+    // Cualquier otro formato: mostrar tal cual
+    return s;
+  };
 
   return (
     <div className="p-6">
@@ -96,16 +102,17 @@ const formatFechaPlano = (s: string) => {
             <th className="p-2">Litros</th>
             <th className="p-2">Vehículo</th>
             <th className="p-2">Obra</th>
+            <th className="p-2">Destino</th>{/* ← NUEVA COLUMNA */}
             <th className="p-2">Fecha</th>
             <th className="p-2">Chofer</th>
-            <th className="p-2">Origen de surtidor</th>{/* ← movido antes de Acciones */}
+            <th className="p-2">Origen de surtidor</th>{/* ← antes de Acciones */}
             <th className="p-2">Acciones</th>
           </tr>
         </thead>
         <tbody>
           {vales.map(vale => (
             <tr key={vale.id} className="border-t border-gray-200">
-              {/* 👇 ahora muestra al encargado/logueado */}
+              {/* encargado/logueado */}
               <td className="p-2">{vale.encargado}</td>
               <td className="p-2">{vale.combustible_lubricante}</td>
               <td className="p-2">{vale.litros}</td>
@@ -113,10 +120,13 @@ const formatFechaPlano = (s: string) => {
                 {vale.marca} {vale.modelo} ({vale.patente})
               </td>
               <td className="p-2">{vale.obra}</td>
+              {/* NUEVA COLUMNA */}
+              <td className="p-2">{vale.destino}</td>
+              {/* fecha directa de DB formateada */}
               <td className="p-2">{formatFechaPlano(vale.fecha)}</td>
-              {/* 👇 chofer correcto */}
+              {/* chofer correcto */}
               <td className="p-2">{nombreChoferDe(vale)}</td>
-              {/* 👇 origen antes de Acciones */}
+              {/* origen antes de acciones */}
               <td className="p-2">{vale.origen}</td>
               <td className="p-2">
                 <div className="flex gap-2">
