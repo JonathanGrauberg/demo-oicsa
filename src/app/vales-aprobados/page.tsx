@@ -12,7 +12,7 @@ type Vale = {
   obra: string;
   destino: string;
   encargado: string; // fallback si no vienen los solicitado_*
-  fecha: string;     // 'YYYY-MM-DD'
+  fecha: string;     // viene como 'YYYY-MM-DD' o 'YYYY-MM-DDTHH:mm:ss.sssZ' desde Postgres
   aprobado: boolean;
   kilometraje: number;
   creado_en: string;
@@ -69,26 +69,32 @@ export default function ValesAprobados() {
       img.src = url;
     });
 
-  // ✅ Si viene 'YYYY-MM-DD' lo mostramos como DD/MM/YYYY sin tocar huso
-const formatFechaPlano = (s: string) => {
-  if (!s) return '';
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (m) {
-    const [, y, mm, dd] = m;
-    return `${dd}/${mm}/${y}`;
-  }
-  // Fallback por si llega con hora (timestamp)
-  const dt = new Date(s);
-  return isNaN(+dt) ? s : dt.toLocaleDateString('es-AR');
-};
+  // ✅ Formatear fecha de string plano a DD-MM-YYYY sin Date()
+  const formatFechaPlano = (s: string) => {
+    if (!s) return '';
+    // Caso timestamp ISO: 2025-08-13T03:00:00.000Z
+    const mTs = /^(\d{4})-(\d{2})-(\d{2})T/.exec(s);
+    if (mTs) {
+      const [, y, mm, dd] = mTs;
+      return `${dd}-${mm}-${y}`;
+    }
+    // Caso simple: 2025-08-13
+    const mSimple = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (mSimple) {
+      const [, y, mm, dd] = mSimple;
+      return `${dd}-${mm}-${y}`;
+    }
+    // Cualquier otro formato: devolver tal cual
+    return s;
+  };
 
-  // ✅ nombre del chofer desde solicitado_* con fallback a encargado
+  // nombre del chofer desde solicitado_* con fallback a encargado
   const nombreChoferDe = (v: Vale) =>
     [v.solicitado_nombre, v.solicitado_apellido].filter(Boolean).join(' ').trim() || v.encargado || '';
 
   const imprimirVale = async (vale: Vale) => {
     // ===== Config rápidos =====
-    const TOP_OFFSET = -2;        // ⬆️ sube/baja TODO el recuadro (mm). (-2 = 2mm más arriba)
+    const TOP_OFFSET = -2;        // ⬆️ sube/baja TODO el recuadro (mm)
     const SIGN_LABEL_OFFSET = 14; // ⬇️ distancia desde el borde inferior del recuadro a las firmas (mm)
 
     // 👉 Documento A4 vertical (vale A6 apaisado centrado arriba)
@@ -103,8 +109,8 @@ const formatFechaPlano = (s: string) => {
 
     // ===== Posicionamiento en A4 (arriba, centrado) =====
     const A4_W = doc.internal.pageSize.getWidth(); // 210 mm
-    const topOffset = TOP_OFFSET;                  // margen superior en A4
-    const leftOffset = (A4_W - baseW) / 2;         // centrado horizontal
+    const topOffset = TOP_OFFSET;
+    const leftOffset = (A4_W - baseW) / 2; // centrado horizontal
 
     // Helpers para trasladar todo el layout original
     const TX = (x: number) => leftOffset + x;
@@ -120,7 +126,7 @@ const formatFechaPlano = (s: string) => {
     const cardH = pageH - margin * 2 - 8; // dejamos 8mm libres abajo (las firmas van fuera)
     const radius = 4;
 
-    // marca de agua (transparencia la trae el PNG)
+    // marca de agua
     try {
       const logo = await loadImage('/img/oicsa.png');
       const wmW = cardW * 0.85;
@@ -151,13 +157,12 @@ const formatFechaPlano = (s: string) => {
     doc.setLineWidth(0.4);
     doc.line(TX(cardX + 8), TY(cardY + 18.5), TX(cardX + cardW - 8), TY(cardY + 18.5));
 
-    // Nº y fecha (arriba derecha) — formateo local +1 día
+    // Nº y fecha (arriba derecha) — mostrar fecha formateada DD-MM-YYYY
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    const fechaStr = formatFechaPlano(vale.fecha);
     const rightX = cardX + cardW - 8;
     doc.text(`Nº: ${vale.id}`, TX(rightX), TY(cardY + 8), { align: 'right' });
-    doc.text(`Fecha: ${fechaStr}`, TX(rightX), TY(cardY + 13), { align: 'right' });
+    doc.text(`Fecha: ${formatFechaPlano(vale.fecha)}`, TX(rightX), TY(cardY + 13), { align: 'right' });
 
     // columnas
     const colGap = 14;
@@ -167,7 +172,7 @@ const formatFechaPlano = (s: string) => {
     let y = cardY + 28;
     const lineH = 6;
 
-    // 🔧 Fila con negrita condicional para valores de 'Insumo' y 'Lts/Kg'
+    // Fila con negrita/size para valores de 'Insumo' y 'Lts/Kg'
     const row = (labelL: string, valueL: string, labelR: string, valueR: string) => {
       // izquierda
       doc.setFont('helvetica', 'bold');
@@ -177,23 +182,26 @@ const formatFechaPlano = (s: string) => {
       // valor izquierda
       if (labelL === 'Insumo:') {
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);   // valor de Insumo en negrita
+        doc.setFontSize(14);
       } else {
         doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
       }
       const leftLines = doc.splitTextToSize(valueL || '-', colW);
       doc.text(leftLines, TX(col1X), TY(y + 5));
 
       // derecha
       doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
       doc.text(labelR, TX(col2X), TY(y));
 
       // valor derecha
       if (labelR === 'Lts/Kg:') {
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);   // valor de Lts/Kg en negrita
+        doc.setFontSize(14);
       } else {
         doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
       }
       const rightLines = doc.splitTextToSize(valueR || '-', colW);
       doc.text(rightLines, TX(col2X), TY(y + 5));
@@ -203,16 +211,15 @@ const formatFechaPlano = (s: string) => {
     };
 
     row('KM:', String(vale.kilometraje ?? ''), 'Dominio:', vale.patente || '');
-    // ⬇️ chofer correcto
+    // chofer correcto
     row('Retiro (Chofer):', nombreChoferDe(vale), 'Obra:', vale.obra || '');
     row('Marca:', vale.marca || '', 'Modelo:', vale.modelo || '');
     row('Insumo:', vale.combustible_lubricante || '', 'Lts/Kg:', String(vale.litros ?? ''));
 
-    // Firmas (fuera del recuadro, MÁS ABAJO)
+    // Firmas (fuera del recuadro, más abajo)
     const labelsY = cardY + cardH + SIGN_LABEL_OFFSET;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
-    // ⬇️ firma del chofer correcta
     doc.text(`Firma Chofer: ${nombreChoferDe(vale)}`, TX(col1X), TY(labelsY));
     doc.text(`Firma Encargado: ${encargadoLogueado}`, TX(col2X), TY(labelsY));
 
@@ -271,7 +278,7 @@ const formatFechaPlano = (s: string) => {
             vales.map((vale) => (
               <tr key={vale.id} className="border-t border-gray-200">
                 <td className="p-2">{vale.id}</td>
-                {/* ✅ Fecha sin desfase (+1 día) */}
+                {/* ✅ Fecha formateada DD-MM-YYYY sin Date() */}
                 <td className="p-2">{formatFechaPlano(vale.fecha)}</td>
                 <td className="p-2">{vale.origen}</td>
                 <td className="p-2">{vale.combustible_lubricante}</td>
@@ -281,7 +288,7 @@ const formatFechaPlano = (s: string) => {
                 </td>
                 <td className="p-2">{vale.kilometraje}</td>
                 <td className="p-2">{vale.obra}</td>
-                {/* ⬇️ chofer correcto también en la tabla */}
+                {/* chofer correcto también en la tabla */}
                 <td className="p-2">{nombreChoferDe(vale)}</td>
                 <td className="p-2">
                   <button
