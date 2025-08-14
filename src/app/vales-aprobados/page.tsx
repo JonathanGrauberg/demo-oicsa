@@ -176,7 +176,8 @@ const formatFechaPlano = (s: string) => {
 
       // valor izquierda
       if (labelL === 'Insumo:') {
-        doc.setFont('helvetica', 'bold');   // valor de Insumo en negrita
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);   // valor de Insumo en negrita
       } else {
         doc.setFont('helvetica', 'normal');
       }
@@ -189,7 +190,8 @@ const formatFechaPlano = (s: string) => {
 
       // valor derecha
       if (labelR === 'Lts/Kg:') {
-        doc.setFont('helvetica', 'bold');   // valor de Lts/Kg en negrita
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);   // valor de Lts/Kg en negrita
       } else {
         doc.setFont('helvetica', 'normal');
       }
