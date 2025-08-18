@@ -88,6 +88,7 @@ const NewStock = () => {
             <option value="">Seleccionar tipo...</option>
             <option value="Combustible">Combustible</option>
             <option value="Lubricante">Lubricante</option>
+            <option value="Otro">Otro</option>
           </select>
         </div>
 
