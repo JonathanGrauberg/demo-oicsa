@@ -3,6 +3,6 @@ export interface StockItem {
   nombre: string;
   tipo: 'Combustible' | 'Lubricante' | 'Otro';
   cantidad: number;
-  unidad: 'litros';
+  unidad: 'litros' | 'kilogramos'; // ✅ ahora acepta ambos
   creado_en: string;
 }

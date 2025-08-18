@@ -26,12 +26,15 @@ const NewStock = () => {
     setLoading(true);
     setSuccess(false);
 
-    // ✨ Limpieza de formato de número (quita puntos y reemplaza coma decimal por punto)
-    const cantidadNumerica = Number(String(formData.cantidad).replace(/\./g, '').replace(',', '.'));
+    // Quita separadores de miles y usa punto como decimal
+    const cantidadNumerica = Number(
+      String(formData.cantidad).replace(/\./g, '').replace(',', '.')
+    );
 
     const data = {
       ...formData,
-      cantidad: cantidadNumerica
+      cantidad: cantidadNumerica,
+      unidad: String(formData.unidad).toLowerCase(), // <-- normaliza ('litros' | 'kg')
     };
 
     try {
@@ -51,7 +54,7 @@ const NewStock = () => {
         });
       } else {
         const error = await res.json();
-        alert('Error al registrar: ' + error.error);
+        alert('Error al registrar: ' + (error?.error || 'Desconocido'));
       }
     } catch (err) {
       alert('Error al conectar con el servidor');
@@ -113,7 +116,8 @@ const NewStock = () => {
             className="block w-full rounded-md border-gray-300 shadow-sm text-black"
             required
           >
-            <option value="litros">litros</option>
+            <option value="litros">Litros</option>
+            <option value="Kilogramos">Kilogramos</option>
           </select>
         </div>
 
