@@ -16,12 +16,16 @@ export default function Dashboard() {
     obras: 0,
   });
 
-  const canSeePending = role === 'superusuario' || role === 'aprobador';
+  // 👇 ahora también ven la tarjeta los roles administrativo y encargado
+  const canSeePending =
+    role === 'superusuario' ||
+    role === 'aprobador'   ||
+    role === 'administrativo' ||
+    role === 'encargado';
 
   useEffect(() => {
     const load = async () => {
       try {
-        // 1) Obtener rol
         const meRes = await fetch('/api/auth/me', { cache: 'no-store' });
         if (meRes.ok) {
           const me = await meRes.json();
@@ -38,7 +42,6 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    // Esperar a conocer el rol para decidir qué endpoints consultar
     if (role === null) return;
 
     const fetchStats = async () => {
@@ -50,7 +53,6 @@ export default function Dashboard() {
           fetch('/api/obra', { cache: 'no-store' }),
         ] as const;
 
-        // Solo pedir vales pendientes si corresponde
         const pendingFetch = canSeePending
           ? fetch('/api/vale?aprobado=false', { cache: 'no-store' })
           : null;

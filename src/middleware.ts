@@ -5,7 +5,6 @@ const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET || 'clave-sec
 
 async function verifyToken(token: string) {
   const [header, payload, signature] = token.split('.');
-
   if (!header || !payload || !signature) return null;
 
   const encoder = new TextEncoder();
@@ -18,7 +17,10 @@ async function verifyToken(token: string) {
   );
 
   const data = encoder.encode(`${header}.${payload}`);
-  const signatureBytes = Uint8Array.from(atob(signature.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+  const signatureBytes = Uint8Array.from(
+    atob(signature.replace(/-/g, '+').replace(/_/g, '/')),
+    c => c.charCodeAt(0)
+  );
 
   const isValid = await crypto.subtle.verify('HMAC', key, signatureBytes, data);
   if (!isValid) return null;
@@ -38,17 +40,23 @@ export async function middleware(req: NextRequest) {
     const decoded = await verifyToken(token);
     if (!decoded) return NextResponse.redirect(new URL('/login', req.url));
 
-    const { rol } = decoded;
+    const role = String(decoded.rol || '').toLowerCase();
 
-    if (pathname.startsWith('/vales-aprobados') && !['superusuario', 'administrativo'].includes(rol)) {
+    // /vales-aprobados: igual que antes
+    if (pathname.startsWith('/vales-aprobados') &&
+        !['superusuario', 'administrativo'].includes(role)) {
       return NextResponse.redirect(new URL('/no-autorizado', req.url));
     }
 
-    if (pathname.startsWith('/vales-pendientes') && !['superusuario', 'aprobador'].includes(rol)) {
+    // /vales-pendientes: ahora también pueden VER administrativo y encargado
+    if (pathname.startsWith('/vales-pendientes') &&
+        !['superusuario', 'aprobador', 'administrativo', 'encargado'].includes(role)) {
       return NextResponse.redirect(new URL('/no-autorizado', req.url));
     }
 
-    if (pathname.startsWith('/stock') && !['superusuario', 'administrativo'].includes(rol)) {
+    // /stock: igual que antes
+    if (pathname.startsWith('/stock') &&
+        !['superusuario', 'administrativo'].includes(role)) {
       return NextResponse.redirect(new URL('/no-autorizado', req.url));
     }
 

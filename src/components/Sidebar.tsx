@@ -33,7 +33,7 @@ const menuGroups = [
     title: '⛽ Vales',
     items: [
       { label: 'Solicitud de Vale', path: '/newvoucher', roles: ['superusuario', 'encargado', 'administrativo'] },
-      { label: 'Vales Pendientes', path: '/vales-pendientes', roles: ['superusuario', 'aprobador'] },
+      { label: 'Vales Pendientes', path: '/vales-pendientes', roles: ['superusuario', 'aprobador', 'encargado', 'administrativo'] },
       { label: 'Vales Aprobados', path: '/vales-aprobados', roles: ['superusuario', 'administrativo'] },
       { label: 'Historial de Vales', path: '/vales', roles: ['superusuario', 'administrativo'] },
     ],
